@@ -1,0 +1,55 @@
+<div class="login-page">
+  <div class="top-controls">
+    <app-theme-toggle />
+    <app-lang-toggle />
+  </div>
+
+  <div class="login-card">
+    <div class="login-logo">
+      <span class="logo-dot"></span>
+    </div>
+
+    <h1 class="login-title">{{ i18n.t('login_title') }}</h1>
+    <p class="login-subtitle">{{ i18n.t('login_subtitle') }}</p>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="login-form">
+      <div class="input-group">
+        <lucide-icon [img]="BuildingIcon" [size]="18" class="input-icon" />
+        <input
+          type="text"
+          formControlName="company_code"
+          [placeholder]="i18n.t('login_company_code')"
+          class="input-field"
+        />
+      </div>
+
+      <div class="input-group">
+        <lucide-icon [img]="UserIcon" [size]="18" class="input-icon" />
+        <input
+          type="text"
+          formControlName="employee_id"
+          [placeholder]="i18n.t('login_employee_id')"
+          class="input-field"
+        />
+      </div>
+
+      <div class="input-group">
+        <lucide-icon [img]="LockIcon" [size]="18" class="input-icon" />
+        <input
+          type="password"
+          formControlName="password"
+          [placeholder]="i18n.t('login_password')"
+          class="input-field"
+        />
+      </div>
+
+      @if (errorMessage()) {
+        <div class="error-box">{{ errorMessage() }}</div>
+      }
+
+      <button type="submit" class="submit-btn" [disabled]="isLoading()">
+        {{ isLoading() ? i18n.t('login_loading') : i18n.t('login_button') }}
+      </button>
+    </form>
+  </div>
+</div>

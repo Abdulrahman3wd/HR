@@ -1,0 +1,76 @@
+<div class="account-page">
+  <div class="account-section">
+    <h2 class="section-title">{{ i18n.t('account_info_title') }}</h2>
+
+    @if (profile(); as p) {
+      <div class="info-box">
+        <div class="info-row">
+          <span class="info-label">{{ i18n.t('account_field_id') }}</span>
+          <span class="info-value">{{ p.employee_id }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">{{ i18n.t('account_field_name') }}</span>
+          <span class="info-value">{{ p.full_name }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">{{ i18n.t('account_field_department') }}</span>
+          <span class="info-value">{{ p.department }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">{{ i18n.t('account_field_role') }}</span>
+          <span class="info-value">{{ roleLabel(p.role) }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">{{ i18n.t('account_field_annual') }}</span>
+          <span class="info-value">{{ p.annual_leave_balance }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">{{ i18n.t('account_field_sick') }}</span>
+          <span class="info-value">{{ p.sick_leave_balance }}</span>
+        </div>
+      </div>
+    }
+  </div>
+
+  <div class="account-section">
+    <h2 class="section-title">
+      <lucide-icon [img]="KeyIcon" [size]="17" />
+      {{ i18n.t('account_change_password_title') }}
+    </h2>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="password-form">
+      <input
+        type="password"
+        formControlName="current_password"
+        [placeholder]="i18n.t('account_current_password')"
+        class="field-input"
+      />
+      <input
+        type="password"
+        formControlName="new_password"
+        [placeholder]="i18n.t('account_new_password')"
+        class="field-input"
+      />
+      <input
+        type="password"
+        formControlName="confirm_password"
+        [placeholder]="i18n.t('account_confirm_password')"
+        class="field-input"
+      />
+
+      @if (statusMessage()) {
+        <div
+          class="status-msg"
+          [class.status-success]="statusMessage()!.type === 'success'"
+          [class.status-error]="statusMessage()!.type === 'error'"
+        >
+          {{ statusMessage()!.text }}
+        </div>
+      }
+
+      <button type="submit" class="submit-btn" [disabled]="isChanging()">
+        {{ isChanging() ? i18n.t('account_changing') : i18n.t('account_change_password_button') }}
+      </button>
+    </form>
+  </div>
+</div>

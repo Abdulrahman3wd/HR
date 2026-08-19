@@ -1,0 +1,29 @@
+<div class="history-page">
+  <h2 class="page-title">{{ i18n.t('history_title') }}</h2>
+
+  @if (!isLoading() && logs().length === 0) {
+    <div class="empty-state">
+      <lucide-icon [img]="EmptyIcon" [size]="28" />
+      <p>{{ i18n.t('history_empty') }}</p>
+    </div>
+  }
+
+  <div class="logs-list">
+    @for (log of logs(); track log.id) {
+      <div class="log-card">
+        <div class="log-row">
+          <span class="log-label">{{ i18n.t('history_you_asked') }}</span>
+          <p class="log-question">{{ log.question }}</p>
+        </div>
+        <div class="log-row">
+          <span class="log-label">{{ i18n.t('history_answer') }}</span>
+          <p class="log-answer">{{ log.answer }}</p>
+        </div>
+        @if (log.sources.length > 0) {
+          <div class="log-sources">{{ log.sources.join(', ') }}</div>
+        }
+        <div class="log-date">{{ log.created_at }}</div>
+      </div>
+    }
+  </div>
+</div>

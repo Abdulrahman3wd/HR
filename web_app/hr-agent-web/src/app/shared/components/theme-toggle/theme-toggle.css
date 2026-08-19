@@ -1,0 +1,38 @@
+.theme-toggle-btn {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background-color: var(--color-bg-muted);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.25s ease;
+}
+
+.theme-toggle-btn:hover {
+  background-color: var(--color-border);
+}
+
+.icon-wrapper {
+  position: relative;
+  width: 18px;
+  height: 18px;
+}
+
+.icon {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+}
+
+.icon-hidden {
+  opacity: 0;
+  transform: rotate(90deg) scale(0.4);
+  pointer-events: none;
+}

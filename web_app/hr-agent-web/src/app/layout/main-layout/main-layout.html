@@ -1,0 +1,22 @@
+<div class="layout-wrapper">
+  <div class="app-shell">
+    <app-sidebar />
+
+    <div class="main-content">
+      <div class="content-topbar">
+        <button class="mobile-menu-btn" (click)="layout.toggleMobileSidebar()">
+          <lucide-icon [img]="MenuIcon" [size]="20" />
+        </button>
+
+        <div class="topbar-spacer"></div>
+
+        <app-theme-toggle />
+        <app-lang-toggle />
+      </div>
+
+      <div class="content-scroll">
+        <router-outlet />
+      </div>
+    </div>
+  </div>
+</div>

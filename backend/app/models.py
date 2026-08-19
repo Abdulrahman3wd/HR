@@ -1,0 +1,189 @@
+"""
+models.py
+=========
+Pydantic models shared across routers (request/response shapes).
+"""
+
+from pydantic import BaseModel
+
+
+# ---------- Auth ----------
+class LoginRequest(BaseModel):
+    company_code: str
+    employee_id: str
+    password: str
+
+
+class LoginResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    employee_id: str
+    company_id: int
+    company_name: str
+    full_name: str
+    department: str
+    role: str
+
+
+class CurrentUserResponse(BaseModel):
+    employee_id: str
+    company_id: int
+    full_name: str
+    department: str
+    role: str
+    annual_leave_balance: int
+    sick_leave_balance: int
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
+# ---------- Company self-signup ----------
+class CompanySignupRequest(BaseModel):
+    company_name: str
+    company_code: str
+    admin_employee_id: str
+    admin_full_name: str
+    admin_password: str
+
+
+class CompanySignupResponse(BaseModel):
+    message: str
+    company_code: str
+
+
+# ---------- Chat ----------
+class AskRequest(BaseModel):
+    question: str
+
+
+class AskResponse(BaseModel):
+    answer: str
+    source_type: str
+    sources: list[str] = []
+
+
+# ---------- Chat History / Audit Log ----------
+class ChatLogEntry(BaseModel):
+    id: int
+    company_id: int
+    employee_id: str
+    question: str
+    answer: str
+    source_type: str
+    sources: list[str]
+    created_at: str
+
+
+class ChatLogListResponse(BaseModel):
+    logs: list[ChatLogEntry]
+    total: int
+
+
+# ---------- Documents (Admin) ----------
+class UploadResponse(BaseModel):
+    message: str
+    total_chunks: int
+    processed_files: list[str]
+
+
+# ---------- User management (Admin) ----------
+class UserRecord(BaseModel):
+    employee_id: str
+    company_id: int
+    full_name: str
+    department: str
+    role: str
+    annual_leave_balance: int
+    sick_leave_balance: int
+
+
+class UserCreateRequest(BaseModel):
+    employee_id: str
+    full_name: str
+    department: str
+    password: str
+    role: str = "employee"
+    annual_leave_balance: int = 21
+    sick_leave_balance: int = 7
+
+
+class UserUpdateRequest(BaseModel):
+    full_name: str | None = None
+    department: str | None = None
+    role: str | None = None
+    password: str | None = None
+    annual_leave_balance: int | None = None
+    sick_leave_balance: int | None = None
+
+
+class UserListResponse(BaseModel):
+    users: list[UserRecord]
+    total: int
+
+
+# ---------- Leave Requests ----------
+class LeaveRequestCreate(BaseModel):
+    start_date: str
+    end_date: str
+    reason: str | None = None
+
+
+class LeaveRequestRecord(BaseModel):
+    id: int
+    company_id: int
+    employee_id: str
+    start_date: str
+    end_date: str
+    days_count: int
+    reason: str | None
+    status: str
+    created_at: str
+    reviewed_by: str | None
+    reviewed_at: str | None
+
+
+class LeaveRequestListResponse(BaseModel):
+    requests: list[LeaveRequestRecord]
+    total: int
+
+
+# ---------- Notifications ----------
+class NotificationRecord(BaseModel):
+    id: int
+    company_id: int
+    employee_id: str
+    message: str
+    is_read: bool
+    created_at: str
+
+
+class NotificationListResponse(BaseModel):
+    notifications: list[NotificationRecord]
+    total: int
+
+
+class UnreadCountResponse(BaseModel):
+    unread_count: int
+
+
+# ---------- Dashboard Stats ----------
+class TopUserEntry(BaseModel):
+    employee_id: str
+    question_count: int
+
+
+class DashboardStatsResponse(BaseModel):
+    employee_count: int
+    admin_count: int
+    total_users: int
+    pending_leaves: int
+    approved_leaves: int
+    rejected_leaves: int
+    total_leave_requests: int
+    total_questions: int
+    policy_questions: int
+    personal_questions: int
+    top_users: list[TopUserEntry]

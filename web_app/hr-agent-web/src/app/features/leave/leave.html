@@ -1,0 +1,76 @@
+<div class="leave-page">
+  <div class="leave-section">
+    <h2 class="section-title">
+      <lucide-icon [img]="PlusIcon" [size]="18" />
+      {{ i18n.t('leave_new_title') }}
+    </h2>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="leave-form">
+      <div class="form-row">
+        <div class="form-field">
+          <label class="field-label">{{ i18n.t('leave_start_date') }}</label>
+          <input type="date" formControlName="start_date" class="field-input" />
+        </div>
+        <div class="form-field">
+          <label class="field-label">{{ i18n.t('leave_end_date') }}</label>
+          <input type="date" formControlName="end_date" class="field-input" />
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label class="field-label">{{ i18n.t('leave_reason') }}</label>
+        <input type="text" formControlName="reason" class="field-input" />
+      </div>
+
+      @if (statusMessage()) {
+        <div
+          class="status-msg"
+          [class.status-success]="statusMessage()!.type === 'success'"
+          [class.status-error]="statusMessage()!.type === 'error'"
+        >
+          {{ statusMessage()!.text }}
+        </div>
+      }
+
+      <button type="submit" class="submit-btn" [disabled]="isSubmitting()">
+        {{ isSubmitting() ? i18n.t('leave_submitting') : i18n.t('leave_submit') }}
+      </button>
+    </form>
+  </div>
+
+  <div class="leave-section">
+    <h2 class="section-title">{{ i18n.t('leave_my_requests') }}</h2>
+
+    @if (requests().length === 0) {
+      <p class="empty-text">{{ i18n.t('leave_no_requests') }}</p>
+    } @else {
+      <div class="requests-list">
+        @for (req of requests(); track req.id) {
+          <div class="request-card">
+            <div class="request-header">
+              <span class="request-dates">{{ req.start_date }} → {{ req.end_date }}</span>
+
+              <span
+                class="status-badge"
+                [class.badge-pending]="req.status === 'pending'"
+                [class.badge-approved]="req.status === 'approved'"
+                [class.badge-rejected]="req.status === 'rejected'"
+              >
+                @if (req.status === 'pending') { <lucide-icon [img]="ClockIcon" [size]="13" /> }
+                @if (req.status === 'approved') { <lucide-icon [img]="CheckIcon" [size]="13" /> }
+                @if (req.status === 'rejected') { <lucide-icon [img]="XIcon" [size]="13" /> }
+                {{ statusLabel(req.status) }}
+              </span>
+            </div>
+
+            <div class="request-meta">{{ req.days_count }} {{ i18n.t('leave_days') }}</div>
+
+            @if (req.reason) {
+              <div class="request-reason">{{ req.reason }}</div>
+            }
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>

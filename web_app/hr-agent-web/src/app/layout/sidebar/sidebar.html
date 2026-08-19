@@ -1,0 +1,63 @@
+<aside class="sidebar" [class.sidebar-collapsed]="layout.isSidebarCollapsed()">
+  <div class="sidebar-top">
+    <div class="sidebar-logo">
+      <span class="logo-dot"></span>
+    </div>
+
+    @if (!layout.isSidebarCollapsed()) {
+      <div class="sidebar-user">
+        <div class="user-name">{{ auth.currentUser()?.full_name }}</div>
+        <div class="user-role">{{ auth.currentUser()?.company_name }}</div>
+      </div>
+    }
+
+    <button class="collapse-btn" (click)="layout.toggleCollapse()">
+      <lucide-icon [img]="toggleIcon()" [size]="17" />
+    </button>
+  </div>
+
+  <nav class="sidebar-nav">
+    @if (auth.isAdmin()) {
+      <a routerLink="/dashboard" routerLinkActive="active" class="nav-item" (click)="onNavItemClick()">
+        <lucide-icon [img]="DashboardIcon" [size]="19" />
+        @if (!layout.isSidebarCollapsed()) { <span>{{ i18n.t('nav_dashboard') }}</span> }
+      </a>
+    }
+
+    <a routerLink="/chat" routerLinkActive="active" class="nav-item" (click)="onNavItemClick()">
+      <lucide-icon [img]="ChatIcon" [size]="19" />
+      @if (!layout.isSidebarCollapsed()) { <span>{{ i18n.t('nav_chat') }}</span> }
+    </a>
+
+    <a routerLink="/leave" routerLinkActive="active" class="nav-item" (click)="onNavItemClick()">
+      <lucide-icon [img]="LeaveIcon" [size]="19" />
+      @if (!layout.isSidebarCollapsed()) { <span>{{ i18n.t('nav_leave') }}</span> }
+    </a>
+
+    <a routerLink="/history" routerLinkActive="active" class="nav-item" (click)="onNavItemClick()">
+      <lucide-icon [img]="HistoryIcon" [size]="19" />
+      @if (!layout.isSidebarCollapsed()) { <span>{{ i18n.t('nav_history') }}</span> }
+    </a>
+
+    <a routerLink="/account" routerLinkActive="active" class="nav-item" (click)="onNavItemClick()">
+      <lucide-icon [img]="AccountIcon" [size]="19" />
+      @if (!layout.isSidebarCollapsed()) { <span>{{ i18n.t('nav_account') }}</span> }
+    </a>
+
+    @if (auth.isAdmin()) {
+      <a routerLink="/admin" routerLinkActive="active" class="nav-item" (click)="onNavItemClick()">
+        <lucide-icon [img]="AdminIcon" [size]="19" />
+        @if (!layout.isSidebarCollapsed()) { <span>{{ i18n.t('nav_admin') }}</span> }
+      </a>
+    }
+  </nav>
+
+  <button (click)="logout()" class="nav-item logout-btn">
+    <lucide-icon [img]="LogoutIcon" [size]="19" />
+    @if (!layout.isSidebarCollapsed()) { <span>{{ i18n.t('nav_logout') }}</span> }
+  </button>
+</aside>
+
+@if (layout.isMobileSidebarOpen()) {
+  <div class="mobile-overlay" (click)="layout.closeMobileSidebar()"></div>
+}

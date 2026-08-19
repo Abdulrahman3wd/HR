@@ -1,0 +1,20 @@
+<button
+  (click)="theme.toggle()"
+  class="theme-toggle-btn"
+  [attr.aria-label]="'Toggle theme'"
+>
+  <span class="icon-wrapper">
+    <lucide-icon
+      [img]="SunIcon"
+      [size]="18"
+      class="icon icon-sun"
+      [class.icon-hidden]="theme.theme() === 'dark'"
+    />
+    <lucide-icon
+      [img]="MoonIcon"
+      [size]="18"
+      class="icon icon-moon"
+      [class.icon-hidden]="theme.theme() === 'light'"
+    />
+  </span>
+</button>

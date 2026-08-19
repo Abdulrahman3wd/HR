@@ -1,0 +1,4 @@
+<button (click)="i18n.toggle()" class="lang-toggle-btn">
+  <lucide-icon [img]="LanguagesIcon" [size]="16" />
+  <span class="lang-label">{{ i18n.lang() === 'ar' ? 'English' : 'عربي' }}</span>
+</button>

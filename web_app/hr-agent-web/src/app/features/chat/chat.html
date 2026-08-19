@@ -1,0 +1,50 @@
+<div class="chat-page">
+  <div class="messages-area">
+    @if (messages().length === 0) {
+      <div class="empty-state">
+        <div class="empty-icon">
+          <lucide-icon [img]="SparklesIcon" [size]="26" />
+        </div>
+        <h2 class="empty-title">{{ i18n.t('chat_empty_title') }}</h2>
+        <p class="empty-subtitle">{{ i18n.t('chat_empty_subtitle') }}</p>
+      </div>
+    }
+
+    @for (msg of messages(); track $index) {
+      <div class="msg-row" [class.msg-row-user]="msg.role === 'user'">
+        <div class="msg-bubble" [class.msg-user]="msg.role === 'user'" [class.msg-agent]="msg.role === 'agent'">
+          {{ msg.text }}
+
+          @if (msg.sources && msg.sources.length > 0) {
+            <div class="msg-sources">{{ i18n.t('chat_source') }}: {{ msg.sources.join(', ') }}</div>
+          }
+        </div>
+      </div>
+    }
+
+    @if (isThinking()) {
+      <div class="msg-row">
+        <div class="msg-bubble msg-agent msg-thinking">
+          <span class="dot"></span>
+          <span class="dot"></span>
+          <span class="dot"></span>
+        </div>
+      </div>
+    }
+
+    <div #scrollAnchor></div>
+  </div>
+
+  <div class="input-area">
+    <textarea
+      [(ngModel)]="questionText"
+      (keydown)="onKeydown($event)"
+      [placeholder]="i18n.t('chat_placeholder')"
+      class="chat-input"
+      rows="1"
+    ></textarea>
+    <button (click)="sendQuestion()" class="send-btn" [disabled]="isThinking()">
+      <lucide-icon [img]="SendIcon" [size]="18" />
+    </button>
+  </div>
+</div>

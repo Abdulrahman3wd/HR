@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+/* ---------- Design Tokens (Light theme - default) ---------- */
+:root {
+  --color-bg-base: #F7F8FA;
+  --color-bg-surface: #FFFFFF;
+  --color-bg-muted: #EDEEF2;
+
+  --color-text-primary: #1B1C22;
+  --color-text-secondary: #7E7B8A;
+  --color-text-muted: #A6A8B4;
+
+  --color-border: #E3E4E9;
+
+  --color-primary: #1B1C22;
+  --color-primary-hover: #33343D;
+  --color-primary-subtle: #EDEEF2;
+  --color-primary-text: #FFFFFF;
+
+  --color-success: #16A34A;
+  --color-warning: #EAB308;
+  --color-danger: #DC2626;
+
+  --color-sidebar-bg: #1B1C22;
+  --color-sidebar-text: #A6A8B4;
+  --color-sidebar-text-active: #FFFFFF;
+  --color-sidebar-hover: rgba(255,255,255,0.06);
+}
+
+/* ---------- Design Tokens (Dark theme) ---------- */
+.dark {
+  --color-bg-base: #1B1C22;
+  --color-bg-surface: #24252D;
+  --color-bg-muted: #2C2D36;
+
+  --color-text-primary: #F7F8FA;
+  --color-text-secondary: #A6A8B4;
+  --color-text-muted: #7E7B8A;
+
+  --color-border: #34353F;
+
+  --color-primary: #F7F8FA;
+  --color-primary-hover: #D8D9DE;
+  --color-primary-subtle: #2C2D36;
+  --color-primary-text: #1B1C22;
+
+  --color-success: #4ADE80;
+  --color-warning: #FACC15;
+  --color-danger: #F87171;
+
+  --color-sidebar-bg: #121317;
+  --color-sidebar-text: #8B8DA0;
+  --color-sidebar-text-active: #FFFFFF;
+  --color-sidebar-hover: rgba(255,255,255,0.05);
+}
+
+body {
+  background-color: var(--color-bg-base);
+  color: var(--color-text-primary);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* ---------- Tailwind theme mapping ---------- */
+@theme {
+  --color-bg-base: var(--color-bg-base);
+  --color-bg-surface: var(--color-bg-surface);
+  --color-bg-muted: var(--color-bg-muted);
+
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-muted: var(--color-text-muted);
+
+  --color-border: var(--color-border);
+
+  --color-primary: var(--color-primary);
+  --color-primary-hover: var(--color-primary-hover);
+  --color-primary-subtle: var(--color-primary-subtle);
+  --color-primary-text: var(--color-primary-text);
+
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+  --color-danger: var(--color-danger);
+
+  --color-sidebar-bg: var(--color-sidebar-bg);
+  --color-sidebar-text: var(--color-sidebar-text);
+  --color-sidebar-text-active: var(--color-sidebar-text-active);
+  --color-sidebar-hover: var(--color-sidebar-hover);
+}

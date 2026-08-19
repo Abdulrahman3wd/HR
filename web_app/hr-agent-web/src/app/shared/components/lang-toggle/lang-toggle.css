@@ -1,0 +1,27 @@
+.lang-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.9rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  background-color: var(--color-bg-muted);
+  color: var(--color-text-primary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.25s ease, transform 0.15s ease;
+}
+
+.lang-toggle-btn:hover {
+  background-color: var(--color-border);
+}
+
+.lang-toggle-btn:active {
+  transform: scale(0.95);
+}
+
+.lang-label {
+  transition: opacity 0.2s ease;
+}

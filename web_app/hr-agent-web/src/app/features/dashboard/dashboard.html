@@ -1,0 +1,60 @@
+<div class="dashboard-page">
+  <h2 class="page-title">{{ i18n.t('dashboard_title') }}</h2>
+
+  @if (stats(); as s) {
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">
+          <lucide-icon [img]="UsersIcon" [size]="18" />
+        </div>
+        <div class="stat-value">{{ s.total_users }}</div>
+        <div class="stat-label">{{ i18n.t('dashboard_total_users') }}</div>
+        <div class="stat-sub">{{ s.employee_count }} {{ i18n.t('dashboard_employees') }} · {{ s.admin_count }} {{ i18n.t('dashboard_admins') }}</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon">
+          <lucide-icon [img]="LeaveIcon" [size]="18" />
+        </div>
+        <div class="stat-value">{{ s.total_leave_requests }}</div>
+        <div class="stat-label">{{ i18n.t('dashboard_leave_requests') }}</div>
+        <div class="stat-sub">
+          <span class="dot dot-pending"></span> {{ s.pending_leaves }}
+          <span class="dot dot-approved"></span> {{ s.approved_leaves }}
+          <span class="dot dot-rejected"></span> {{ s.rejected_leaves }}
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon">
+          <lucide-icon [img]="ChatIcon" [size]="18" />
+        </div>
+        <div class="stat-value">{{ s.total_questions }}</div>
+        <div class="stat-label">{{ i18n.t('dashboard_total_questions') }}</div>
+        <div class="stat-sub">{{ s.policy_questions }} {{ i18n.t('dashboard_policy_questions') }} · {{ s.personal_questions }} {{ i18n.t('dashboard_personal_questions') }}</div>
+      </div>
+    </div>
+
+    <div class="top-users-section">
+      <h3 class="section-title">{{ i18n.t('dashboard_top_users') }}</h3>
+
+      @if (s.top_users.length === 0) {
+        <p class="empty-text">{{ i18n.t('dashboard_no_activity') }}</p>
+      } @else {
+        <div class="top-users-list">
+          @for (user of s.top_users; track user.employee_id) {
+            <div class="top-user-row">
+              <div class="top-user-info">
+                <span class="top-user-id">{{ user.employee_id }}</span>
+                <span class="top-user-count">{{ user.question_count }} {{ i18n.t('dashboard_questions_unit') }}</span>
+              </div>
+              <div class="bar-track">
+                <div class="bar-fill" [style.width.%]="barWidth(user.question_count)"></div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

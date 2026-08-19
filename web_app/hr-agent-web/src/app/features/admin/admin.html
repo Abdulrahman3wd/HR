@@ -1,0 +1,152 @@
+<div class="admin-page">
+  <h2 class="page-title">{{ i18n.t('admin_title') }}</h2>
+
+  <div class="tabs">
+    <button class="tab-btn" [class.tab-active]="activeTab() === 'users'" (click)="switchTab('users')">
+      <lucide-icon [img]="UsersIcon" [size]="16" />
+      {{ i18n.t('admin_tab_users') }}
+    </button>
+    <button class="tab-btn" [class.tab-active]="activeTab() === 'docs'" (click)="switchTab('docs')">
+      <lucide-icon [img]="DocsIcon" [size]="16" />
+      {{ i18n.t('admin_tab_docs') }}
+    </button>
+  </div>
+
+  @if (activeTab() === 'users') {
+    <div class="tab-panel">
+      <div class="form-card">
+        <h3 class="card-title">
+          {{ editingId() ? i18n.t('admin_edit_user') : i18n.t('admin_add_user') }}
+        </h3>
+
+        <form [formGroup]="userForm" (ngSubmit)="onUserFormSubmit()" class="user-form">
+          <input formControlName="employee_id" [placeholder]="i18n.t('admin_field_id')" class="field-input" />
+          <input formControlName="full_name" [placeholder]="i18n.t('admin_field_name')" class="field-input" />
+          <input formControlName="department" [placeholder]="i18n.t('admin_field_department')" class="field-input" />
+          <input
+            type="password"
+            formControlName="password"
+            [placeholder]="editingId() ? i18n.t('admin_field_password_hint') : i18n.t('admin_field_password')"
+            class="field-input"
+          />
+
+          <select formControlName="role" class="field-input">
+            <option value="employee">{{ i18n.t('account_role_employee') }}</option>
+            <option value="admin">{{ i18n.t('account_role_admin') }}</option>
+          </select>
+
+          <input
+            type="number"
+            formControlName="annual_leave_balance"
+            [placeholder]="i18n.t('admin_field_annual')"
+            class="field-input"
+          />
+          <input
+            type="number"
+            formControlName="sick_leave_balance"
+            [placeholder]="i18n.t('admin_field_sick')"
+            class="field-input"
+          />
+
+          @if (userStatus()) {
+            <div class="status-msg status-error full-width">{{ userStatus()!.text }}</div>
+          }
+
+          <div class="form-actions full-width">
+            <button type="submit" class="save-btn" [disabled]="isSavingUser()">
+              {{ isSavingUser() ? i18n.t('admin_saving') : i18n.t('admin_save') }}
+            </button>
+            @if (editingId()) {
+              <button type="button" class="cancel-btn" (click)="cancelEdit()">
+                {{ i18n.t('admin_cancel') }}
+              </button>
+            }
+          </div>
+        </form>
+      </div>
+
+      <div class="table-card">
+        <div class="table-wrapper">
+          <table class="users-table">
+            <thead>
+              <tr>
+                <th>{{ i18n.t('admin_th_id') }}</th>
+                <th>{{ i18n.t('admin_th_name') }}</th>
+                <th>{{ i18n.t('admin_th_department') }}</th>
+                <th>{{ i18n.t('admin_th_role') }}</th>
+                <th>{{ i18n.t('admin_th_annual') }}</th>
+                <th>{{ i18n.t('admin_th_sick') }}</th>
+                <th>{{ i18n.t('admin_th_actions') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (user of users(); track user.employee_id) {
+                <tr>
+                  <td>{{ user.employee_id }}</td>
+                  <td>{{ user.full_name }}</td>
+                  <td>{{ user.department }}</td>
+                  <td>{{ roleLabel(user.role) }}</td>
+                  <td>{{ user.annual_leave_balance }}</td>
+                  <td>{{ user.sick_leave_balance }}</td>
+                  <td class="actions-cell">
+                    <button class="icon-btn" (click)="startEdit(user)">
+                      <lucide-icon [img]="EditIcon" [size]="15" />
+                    </button>
+                    <button class="icon-btn icon-btn-danger" (click)="deleteUser(user.employee_id)">
+                      <lucide-icon [img]="DeleteIcon" [size]="15" />
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (activeTab() === 'docs') {
+    <div class="tab-panel">
+      <div class="form-card">
+        <h3 class="card-title">{{ i18n.t('admin_upload_title') }}</h3>
+
+        <div class="upload-row">
+          <input type="file" (change)="onFileSelected($event)" accept=".txt,.pdf,.docx" class="file-input" />
+          <button class="save-btn" (click)="uploadFile()" [disabled]="isUploading()">
+            <lucide-icon [img]="UploadIcon" [size]="15" />
+            {{ isUploading() ? i18n.t('admin_uploading') : i18n.t('admin_upload_button') }}
+          </button>
+        </div>
+
+        @if (docStatus()) {
+          <div
+            class="status-msg"
+            [class.status-success]="docStatus()!.type === 'success'"
+            [class.status-error]="docStatus()!.type === 'error'"
+          >
+            {{ docStatus()!.text }}
+          </div>
+        }
+      </div>
+
+      <div class="table-card">
+        <h3 class="card-title">{{ i18n.t('admin_docs_list_title') }}</h3>
+
+        @if (docs().length === 0) {
+          <p class="empty-text">{{ i18n.t('admin_no_docs') }}</p>
+        } @else {
+          <ul class="docs-list">
+            @for (filename of docs(); track filename) {
+              <li class="doc-item">
+                <span>{{ filename }}</span>
+                <button class="icon-btn icon-btn-danger" (click)="deleteDoc(filename)">
+                  <lucide-icon [img]="DeleteIcon" [size]="15" />
+                </button>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    </div>
+  }
+</div>

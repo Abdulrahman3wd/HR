@@ -44,10 +44,11 @@ export class Account implements OnInit {
     });
   }
 
-  protected roleLabel(role: 'admin' | 'employee'): string {
-    return role === 'admin' ? this.i18n.t('account_role_admin') : this.i18n.t('account_role_employee');
-  }
-
+protected roleLabel(role: 'admin' | 'hr' | 'employee'): string {
+  if (role === 'admin') return this.i18n.t('account_role_admin');
+  if (role === 'hr') return this.i18n.t('account_role_hr');
+  return this.i18n.t('account_role_employee');
+}
   protected onSubmit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();

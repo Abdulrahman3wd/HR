@@ -22,15 +22,14 @@ export class AuthService {
     return this.http.post<LoginResponse>(`${environment.apiUrl}/login`, request);
   }
 
-  setSession(response: LoginResponse): void {
-    const user: CurrentUser = {
-      employee_id: response.employee_id,
-      company_id: response.company_id,
-      company_name: response.company_name,
-      full_name: response.full_name,
-      department: response.department,
-      role: response.role,
-    };
+setSession(response: LoginResponse): void {
+  const user: CurrentUser = {
+    employee_id: response.employee_id,
+    company_id: response.company_id,
+    company_name: response.company_name,
+    full_name: response.full_name,
+    role: response.role,
+  };
 
     localStorage.setItem(TOKEN_KEY, response.access_token);
     localStorage.setItem(USER_KEY, JSON.stringify(user));

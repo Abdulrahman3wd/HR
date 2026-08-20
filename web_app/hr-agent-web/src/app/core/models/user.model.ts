@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'employee';
+export type UserRole = 'admin' | 'hr' | 'employee';
 
 export interface LoginRequest {
   company_code: string;
@@ -13,7 +13,6 @@ export interface LoginResponse {
   company_id: number;
   company_name: string;
   full_name: string;
-  department: string;
   role: UserRole;
 }
 
@@ -22,6 +21,5 @@ export interface CurrentUser {
   company_id: number;
   company_name: string;
   full_name: string;
-  department: string;
   role: UserRole;
 }

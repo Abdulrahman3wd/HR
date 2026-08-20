@@ -38,6 +38,10 @@ export const routes: Routes = [
         canActivate: [adminGuard],
         loadComponent: () => import('./features/admin/admin').then((m) => m.Admin),
       },
+      {
+        path: 'team-leave',
+        loadComponent: () => import('./features/team-leave/team-leave').then((m) => m.TeamLeave),
+      },
       { path: '', redirectTo: 'chat', pathMatch: 'full' },
     ],
   },

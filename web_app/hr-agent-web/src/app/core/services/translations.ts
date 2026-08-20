@@ -50,6 +50,7 @@ export const translations = {
     account_field_annual: 'رصيد الإجازة السنوية',
     account_field_sick: 'رصيد الإجازة المرضية',
     account_role_admin: 'أدمن',
+    account_role_hr: 'موارد بشرية',
     account_role_employee: 'موظف',
     account_change_password_title: 'تغيير كلمة المرور',
     account_current_password: 'كلمة المرور الحالية',
@@ -112,6 +113,22 @@ export const translations = {
     admin_docs_list_title: 'الملفات الحالية',
     admin_no_docs: 'لا توجد ملفات مرفوعة بعد',
     admin_confirm_delete_doc: 'هل أنت متأكد من حذف هذا الملف؟',
+
+
+    nav_team_leave: 'طلبات فريقي',
+    team_leave_title: 'طلبات الإجازة للمراجعة',
+    team_leave_empty: 'لا توجد طلبات إجازة معلقة',
+    team_leave_approve: 'موافقة',
+    team_leave_reject: 'رفض',
+    team_leave_by: 'الموظف',
+
+    admin_tab_departments: 'الأقسام',
+    admin_add_department: 'إضافة قسم',
+    admin_department_name: 'اسم القسم',
+    admin_no_departments: 'لا توجد أقسام بعد',
+    admin_field_manager: 'المدير المباشر',
+    admin_no_manager: 'بدون مدير',
+    admin_no_department_option: 'بدون قسم',
   },
   en: {
     app_name: 'HR Agent',
@@ -164,6 +181,7 @@ export const translations = {
     account_field_annual: 'Annual Leave Balance',
     account_field_sick: 'Sick Leave Balance',
     account_role_admin: 'Admin',
+    account_role_hr: 'HR',
     account_role_employee: 'Employee',
     account_change_password_title: 'Change Password',
     account_current_password: 'Current Password',
@@ -188,7 +206,7 @@ export const translations = {
     dashboard_top_users: 'Most Active Users',
     dashboard_no_activity: 'No activity yet',
     dashboard_questions_unit: 'questions',
-        admin_title: 'Admin Panel',
+    admin_title: 'Admin Panel',
     admin_tab_users: 'Users',
     admin_tab_docs: 'Policy Documents',
 
@@ -226,6 +244,21 @@ export const translations = {
     admin_docs_list_title: 'Current Files',
     admin_no_docs: 'No files uploaded yet',
     admin_confirm_delete_doc: 'Are you sure you want to delete this file?',
+
+    nav_team_leave: 'Team Requests',
+    team_leave_title: 'Leave Requests to Review',
+    team_leave_empty: 'No pending leave requests',
+    team_leave_approve: 'Approve',
+    team_leave_reject: 'Reject',
+    team_leave_by: 'Employee',
+    
+    admin_tab_departments: 'Departments',
+    admin_add_department: 'Add Department',
+    admin_department_name: 'Department Name',
+    admin_no_departments: 'No departments yet',
+    admin_field_manager: 'Direct Manager',
+    admin_no_manager: 'No manager',
+    admin_no_department_option: 'No department',
   },
 } as const;
 

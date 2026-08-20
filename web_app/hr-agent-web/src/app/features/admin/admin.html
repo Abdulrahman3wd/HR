@@ -6,6 +6,10 @@
       <lucide-icon [img]="UsersIcon" [size]="16" />
       {{ i18n.t('admin_tab_users') }}
     </button>
+    <button class="tab-btn" [class.tab-active]="activeTab() === 'departments'" (click)="switchTab('departments')">
+      <lucide-icon [img]="DeptIcon" [size]="16" />
+      {{ i18n.t('admin_tab_departments') }}
+    </button>
     <button class="tab-btn" [class.tab-active]="activeTab() === 'docs'" (click)="switchTab('docs')">
       <lucide-icon [img]="DocsIcon" [size]="16" />
       {{ i18n.t('admin_tab_docs') }}
@@ -22,7 +26,23 @@
         <form [formGroup]="userForm" (ngSubmit)="onUserFormSubmit()" class="user-form">
           <input formControlName="employee_id" [placeholder]="i18n.t('admin_field_id')" class="field-input" />
           <input formControlName="full_name" [placeholder]="i18n.t('admin_field_name')" class="field-input" />
-          <input formControlName="department" [placeholder]="i18n.t('admin_field_department')" class="field-input" />
+
+          <select formControlName="department_id" class="field-input">
+            <option [ngValue]="null">{{ i18n.t('admin_no_department_option') }}</option>
+            @for (dept of departments(); track dept.id) {
+              <option [ngValue]="dept.id">{{ dept.name }}</option>
+            }
+          </select>
+
+          <select formControlName="manager_id" class="field-input">
+            <option [ngValue]="null">{{ i18n.t('admin_no_manager') }}</option>
+            @for (u of users(); track u.employee_id) {
+              @if (u.employee_id !== editingId()) {
+                <option [ngValue]="u.employee_id">{{ u.full_name }} ({{ u.employee_id }})</option>
+              }
+            }
+          </select>
+
           <input
             type="password"
             formControlName="password"
@@ -32,6 +52,7 @@
 
           <select formControlName="role" class="field-input">
             <option value="employee">{{ i18n.t('account_role_employee') }}</option>
+            <option value="hr">{{ i18n.t('account_role_hr') }}</option>
             <option value="admin">{{ i18n.t('account_role_admin') }}</option>
           </select>
 
@@ -73,6 +94,7 @@
                 <th>{{ i18n.t('admin_th_id') }}</th>
                 <th>{{ i18n.t('admin_th_name') }}</th>
                 <th>{{ i18n.t('admin_th_department') }}</th>
+                <th>{{ i18n.t('admin_field_manager') }}</th>
                 <th>{{ i18n.t('admin_th_role') }}</th>
                 <th>{{ i18n.t('admin_th_annual') }}</th>
                 <th>{{ i18n.t('admin_th_sick') }}</th>
@@ -84,7 +106,8 @@
                 <tr>
                   <td>{{ user.employee_id }}</td>
                   <td>{{ user.full_name }}</td>
-                  <td>{{ user.department }}</td>
+                  <td>{{ departmentName(user.department_id) }}</td>
+                  <td>{{ user.manager_id ?? '—' }}</td>
                   <td>{{ roleLabel(user.role) }}</td>
                   <td>{{ user.annual_leave_balance }}</td>
                   <td>{{ user.sick_leave_balance }}</td>
@@ -101,6 +124,48 @@
             </tbody>
           </table>
         </div>
+      </div>
+    </div>
+  }
+
+  @if (activeTab() === 'departments') {
+    <div class="tab-panel">
+      <div class="form-card">
+        <h3 class="card-title">{{ i18n.t('admin_add_department') }}</h3>
+
+        <div class="upload-row">
+          <input
+            type="text"
+            [ngModel]="newDeptName()"
+            (ngModelChange)="newDeptName.set($event)"
+            [placeholder]="i18n.t('admin_department_name')"
+            class="field-input"
+          />
+          <button class="save-btn" (click)="addDepartment()">
+            {{ i18n.t('admin_add_department') }}
+          </button>
+        </div>
+
+        @if (deptStatus()) {
+          <div class="status-msg status-error">{{ deptStatus()!.text }}</div>
+        }
+      </div>
+
+      <div class="table-card">
+        @if (departments().length === 0) {
+          <p class="empty-text">{{ i18n.t('admin_no_departments') }}</p>
+        } @else {
+          <ul class="docs-list">
+            @for (dept of departments(); track dept.id) {
+              <li class="doc-item">
+                <span>{{ dept.name }}</span>
+                <button class="icon-btn icon-btn-danger" (click)="deleteDepartment(dept.id)">
+                  <lucide-icon [img]="DeleteIcon" [size]="15" />
+                </button>
+              </li>
+            }
+          </ul>
+        }
       </div>
     </div>
   }

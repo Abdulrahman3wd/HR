@@ -1,0 +1,43 @@
+<div class="team-leave-page">
+  <h2 class="page-title">{{ i18n.t('team_leave_title') }}</h2>
+
+  @if (requests().length === 0) {
+    <div class="empty-state">
+      <lucide-icon [img]="EmptyIcon" [size]="26" />
+      <p>{{ i18n.t('team_leave_empty') }}</p>
+    </div>
+  } @else {
+    <div class="requests-list">
+      @for (req of requests(); track req.id) {
+        <div class="request-card">
+          <div class="request-info">
+            <div class="request-employee">{{ i18n.t('team_leave_by') }}: {{ req.employee_id }}</div>
+            <div class="request-dates">{{ req.start_date }} → {{ req.end_date }} ({{ req.days_count }})</div>
+            @if (req.reason) {
+              <div class="request-reason">{{ req.reason }}</div>
+            }
+          </div>
+
+          <div class="request-actions">
+            <button
+              class="action-btn approve-btn"
+              [disabled]="processingId() === req.id"
+              (click)="approve(req.id)"
+            >
+              <lucide-icon [img]="ApproveIcon" [size]="15" />
+              {{ i18n.t('team_leave_approve') }}
+            </button>
+            <button
+              class="action-btn reject-btn"
+              [disabled]="processingId() === req.id"
+              (click)="reject(req.id)"
+            >
+              <lucide-icon [img]="RejectIcon" [size]="15" />
+              {{ i18n.t('team_leave_reject') }}
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

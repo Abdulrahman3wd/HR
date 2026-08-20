@@ -238,9 +238,6 @@ class AttendanceMetrics(BaseModel):
 # ---------- KPI Evaluations ----------
 class KpiEvaluationCreate(BaseModel):
     employee_id: str
-    period: str  # e.g. "Q1 2026"
-    start_date: str  # date range used to compute the metrics
-    end_date: str
     manager_notes: str | None = None
 
 

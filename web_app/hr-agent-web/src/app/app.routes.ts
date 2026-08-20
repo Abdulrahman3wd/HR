@@ -42,6 +42,10 @@ export const routes: Routes = [
         path: 'team-leave',
         loadComponent: () => import('./features/team-leave/team-leave').then((m) => m.TeamLeave),
       },
+        {
+        path: 'kpi',
+        loadComponent: () => import('./features/kpi/kpi').then((m) => m.Kpi),
+      },
       { path: '', redirectTo: 'chat', pathMatch: 'full' },
     ],
   },

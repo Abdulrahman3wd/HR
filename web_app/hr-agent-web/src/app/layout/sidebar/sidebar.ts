@@ -12,6 +12,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Users2,
+  TrendingUp,
 } from 'lucide-angular';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
@@ -35,7 +36,7 @@ protected readonly TeamIcon = Users2;
   protected readonly DashboardIcon = LayoutDashboard;
   protected readonly AdminIcon = ShieldCheck;
   protected readonly LogoutIcon = LogOut;
-
+protected readonly KpiIcon = TrendingUp;
 protected readonly toggleIcon = computed(() => {
   const isRtl = this.i18n.lang() === 'ar';
   const collapsed = this.layout.isSidebarCollapsed();

@@ -1,6 +1,6 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { ReactiveFormsModule, FormsModule, FormBuilder, Validators } from '@angular/forms';
-import { LucideAngularModule, Users, FileText, Building2, Pencil, Trash2, Upload } from 'lucide-angular';
+import { LucideAngularModule, Users, FileText, Building2, Pencil, Trash2, Upload, Clock } from 'lucide-angular';
 
 import { AdminService } from '../../core/services/admin.service';
 import { DepartmentService } from '../../core/services/department.service';
@@ -8,7 +8,7 @@ import { I18nService } from '../../core/services/i18n.service';
 import { AdminUserRecord, UserRole } from '../../core/models/admin.model';
 import { Department } from '../../core/models/department.model';
 
-type AdminTab = 'users' | 'departments' | 'docs';
+type AdminTab = 'users' | 'departments' | 'docs' | 'attendance';
 
 @Component({
   selector: 'app-admin',
@@ -28,6 +28,7 @@ export class Admin implements OnInit {
   protected readonly EditIcon = Pencil;
   protected readonly DeleteIcon = Trash2;
   protected readonly UploadIcon = Upload;
+  protected readonly AttendanceIcon = Clock;
 
   protected readonly activeTab = signal<AdminTab>('users');
 
@@ -58,7 +59,10 @@ export class Admin implements OnInit {
   protected readonly selectedFile = signal<File | null>(null);
   protected readonly isUploading = signal(false);
   protected readonly docStatus = signal<{ type: 'success' | 'error'; text: string } | null>(null);
-
+  // ---------- Attendance import state ----------
+  protected readonly attendanceFile = signal<File | null>(null);
+  protected readonly isImportingAttendance = signal(false);
+  protected readonly attendanceImportStatus = signal<{ type: 'success' | 'error'; text: string } | null>(null);
   ngOnInit(): void {
     this.loadUsers();
     this.loadDepartments();
@@ -244,6 +248,38 @@ export class Admin implements OnInit {
 
     this.adminService.deleteDoc(filename).subscribe({
       next: () => this.loadDocs(),
+    });
+  }
+    // ---------- Attendance import logic ----------
+  protected onAttendanceFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.attendanceFile.set(input.files?.[0] ?? null);
+  }
+
+  protected importAttendance(): void {
+    const file = this.attendanceFile();
+    if (!file) {
+      this.attendanceImportStatus.set({ type: 'error', text: this.i18n.t('admin_no_file_selected') });
+      return;
+    }
+
+    this.isImportingAttendance.set(true);
+    this.attendanceImportStatus.set(null);
+
+    this.adminService.importAttendance(file).subscribe({
+      next: (result) => {
+        this.isImportingAttendance.set(false);
+        const importedMsg = this.i18n.t('admin_attendance_imported', { count: result.imported_rows });
+        const skippedMsg = result.skipped_rows > 0
+          ? ` — ${this.i18n.t('admin_attendance_skipped', { count: result.skipped_rows })}`
+          : '';
+        this.attendanceImportStatus.set({ type: 'success', text: importedMsg + skippedMsg });
+        this.attendanceFile.set(null);
+      },
+      error: (err) => {
+        this.isImportingAttendance.set(false);
+        this.attendanceImportStatus.set({ type: 'error', text: err.error?.detail || 'Error' });
+      },
     });
   }
 }

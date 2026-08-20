@@ -46,4 +46,13 @@ export class AdminService {
   deleteDoc(filename: string) {
     return this.http.delete<{ message: string }>(`${this.base}/admin/docs/${filename}`);
   }
+    // ---------- Attendance ----------
+  importAttendance(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<{ imported_rows: number; skipped_rows: number; skipped_details: any[] }>(
+      `${this.base}/attendance/import-excel`,
+      formData
+    );
+  }
 }

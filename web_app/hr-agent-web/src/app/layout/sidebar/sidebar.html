@@ -37,6 +37,10 @@
   <lucide-icon [img]="TeamIcon" [size]="19" />
   @if (!layout.isSidebarCollapsed()) { <span>{{ i18n.t('nav_team_leave') }}</span> }
     </a>
+    <a routerLink="/kpi" routerLinkActive="active" class="nav-item" (click)="onNavItemClick()">
+  <lucide-icon [img]="KpiIcon" [size]="19" />
+  @if (!layout.isSidebarCollapsed()) { <span>{{ i18n.t('nav_kpi') }}</span> }
+</a>
 
     <a routerLink="/history" routerLinkActive="active" class="nav-item" (click)="onNavItemClick()">
       <lucide-icon [img]="HistoryIcon" [size]="19" />

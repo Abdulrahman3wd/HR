@@ -14,6 +14,10 @@
       <lucide-icon [img]="DocsIcon" [size]="16" />
       {{ i18n.t('admin_tab_docs') }}
     </button>
+    <button class="tab-btn" [class.tab-active]="activeTab() === 'attendance'" (click)="switchTab('attendance')">
+  <lucide-icon [img]="AttendanceIcon" [size]="16" />
+  {{ i18n.t('admin_tab_attendance') }}
+</button>
   </div>
 
   @if (activeTab() === 'users') {
@@ -210,6 +214,33 @@
               </li>
             }
           </ul>
+        }
+      </div>
+    </div>
+  }
+
+    @if (activeTab() === 'attendance') {
+    <div class="tab-panel">
+      <div class="form-card">
+        <h3 class="card-title">{{ i18n.t('admin_attendance_upload_title') }}</h3>
+        <p class="hint-text">{{ i18n.t('admin_attendance_columns_hint') }}</p>
+
+        <div class="upload-row">
+          <input type="file" (change)="onAttendanceFileSelected($event)" accept=".xlsx,.xls" class="file-input" />
+          <button class="save-btn" (click)="importAttendance()" [disabled]="isImportingAttendance()">
+            <lucide-icon [img]="UploadIcon" [size]="15" />
+            {{ isImportingAttendance() ? i18n.t('admin_attendance_uploading') : i18n.t('admin_attendance_upload_button') }}
+          </button>
+        </div>
+
+        @if (attendanceImportStatus()) {
+          <div
+            class="status-msg"
+            [class.status-success]="attendanceImportStatus()!.type === 'success'"
+            [class.status-error]="attendanceImportStatus()!.type === 'error'"
+          >
+            {{ attendanceImportStatus()!.text }}
+          </div>
         }
       </div>
     </div>

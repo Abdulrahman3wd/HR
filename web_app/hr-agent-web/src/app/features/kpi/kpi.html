@@ -1,0 +1,158 @@
+<div class="kpi-page">
+  <h2 class="page-title">
+    <lucide-icon [img]="TrendIcon" [size]="18" />
+    {{ i18n.t('nav_kpi') }}
+  </h2>
+
+  <div class="tabs">
+    <button class="tab-btn" [class.tab-active]="activeTab() === 'my'" (click)="switchTab('my')">
+      {{ i18n.t('kpi_my_evaluations') }}
+    </button>
+    @if (auth.currentUser()?.role !== 'employee') {
+      <button class="tab-btn" [class.tab-active]="activeTab() === 'manage'" (click)="switchTab('manage')">
+        {{ i18n.t('kpi_manage_title') }}
+      </button>
+    }
+  </div>
+
+  @if (activeTab() === 'my') {
+    <div class="tab-panel">
+      @if (myEvaluations().length === 0) {
+        <p class="empty-text">{{ i18n.t('kpi_no_evaluations') }}</p>
+      } @else {
+        <div class="eval-list">
+          @for (evalItem of myEvaluations(); track evalItem.id) {
+            <div class="eval-card">
+              <div class="eval-header">
+                <span class="eval-period">{{ evalItem.period }}</span>
+                <span class="eval-by">{{ i18n.t('kpi_evaluated_by') }}: {{ evalItem.evaluated_by }}</span>
+              </div>
+              <div class="eval-metrics">
+                <div class="metric-box">
+                  <span class="metric-value">{{ evalItem.attendance_rate }}%</span>
+                  <span class="metric-label">{{ i18n.t('kpi_attendance') }}</span>
+                </div>
+                <div class="metric-box">
+                  <span class="metric-value">{{ evalItem.punctuality_rate }}%</span>
+                  <span class="metric-label">{{ i18n.t('kpi_punctuality') }}</span>
+                </div>
+              </div>
+              @if (evalItem.manager_notes) {
+                <div class="eval-notes">{{ evalItem.manager_notes }}</div>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  @if (activeTab() === 'manage') {
+    <div class="tab-panel">
+      @if (currentQuarter(); as q) {
+        <div class="quarter-badge">
+          <lucide-icon [img]="QuarterIcon" [size]="15" />
+          {{ i18n.t('kpi_current_quarter') }}: <strong>{{ q.label }}</strong>
+          <span class="quarter-range">({{ q.start_date }} → {{ q.end_date }})</span>
+        </div>
+      }
+
+      <div class="form-card">
+        <label class="field-label">{{ i18n.t('kpi_select_employee') }}</label>
+        <select
+          class="field-input"
+          [ngModel]="selectedEmployeeId()"
+          (ngModelChange)="onEmployeeSelected($event)"
+        >
+          <option value="">—</option>
+          @for (emp of candidateEmployees(); track emp.employee_id) {
+            <option [value]="emp.employee_id">{{ emp.full_name }} ({{ emp.employee_id }})</option>
+          }
+        </select>
+      </div>
+
+      @if (selectedEmployeeId()) {
+        <div class="form-card">
+          <h3 class="card-title">
+            <lucide-icon [img]="ClipboardIcon" [size]="16" />
+            {{ i18n.t('kpi_evaluation_section') }}
+          </h3>
+
+          <button class="preview-btn" (click)="loadMetrics()" [disabled]="isLoadingMetrics()">
+            {{ isLoadingMetrics() ? i18n.t('kpi_loading_metrics') : i18n.t('kpi_load_metrics') }}
+          </button>
+
+          @if (metrics(); as m) {
+            <div class="preview-box">
+              <div class="preview-row">
+                <span>{{ i18n.t('kpi_days_present') }}</span>
+                <strong>{{ m.days_present }} / {{ m.expected_work_days }}</strong>
+              </div>
+              <div class="preview-row">
+                <span>{{ i18n.t('kpi_attendance') }}</span>
+                <strong>{{ m.attendance_rate }}%</strong>
+              </div>
+              <div class="preview-row">
+                <span>{{ i18n.t('kpi_days_on_time') }}</span>
+                <strong>{{ m.days_on_time }}</strong>
+              </div>
+              <div class="preview-row">
+                <span>{{ i18n.t('kpi_punctuality') }}</span>
+                <strong>{{ m.punctuality_rate }}%</strong>
+              </div>
+            </div>
+
+            <textarea
+              [formControl]="notesControl"
+              [placeholder]="i18n.t('kpi_notes')"
+              class="field-input notes-textarea"
+              rows="3"
+            ></textarea>
+
+            @if (evalStatus()) {
+              <div
+                class="status-msg"
+                [class.status-success]="evalStatus()!.type === 'success'"
+                [class.status-error]="evalStatus()!.type === 'error'"
+              >
+                {{ evalStatus()!.text }}
+              </div>
+            }
+
+            <button class="save-btn" (click)="submitEvaluation()" [disabled]="isSubmittingEval()">
+              {{ isSubmittingEval() ? i18n.t('kpi_submitting') : i18n.t('kpi_submit_evaluation') }}
+            </button>
+          }
+        </div>
+
+        @if (employeeHistory().length > 0) {
+          <div class="form-card">
+            <h3 class="card-title">{{ i18n.t('kpi_history_title') }}</h3>
+            <div class="eval-list">
+              @for (evalItem of employeeHistory(); track evalItem.id) {
+                <div class="eval-card">
+                  <div class="eval-header">
+                    <span class="eval-period">{{ evalItem.period }}</span>
+                  </div>
+                  <div class="eval-metrics">
+                    <div class="metric-box">
+                      <span class="metric-value">{{ evalItem.attendance_rate }}%</span>
+                      <span class="metric-label">{{ i18n.t('kpi_attendance') }}</span>
+                    </div>
+                    <div class="metric-box">
+                      <span class="metric-value">{{ evalItem.punctuality_rate }}%</span>
+                      <span class="metric-label">{{ i18n.t('kpi_punctuality') }}</span>
+                    </div>
+                  </div>
+                  @if (evalItem.manager_notes) {
+                    <div class="eval-notes">{{ evalItem.manager_notes }}</div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        }
+      }
+    </div>
+  }
+</div>

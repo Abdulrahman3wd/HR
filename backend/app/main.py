@@ -23,6 +23,8 @@ from app.routers import (
     admin_stats_routes,
     notification_routes,
     admin_departments_routes,
+    attendance_routes,
+    kpi_routes,
 )
 from app.rate_limiter import limiter
 
@@ -31,15 +33,9 @@ app = FastAPI(title="HR Agent API")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# ---------- CORS ----------
-# Allows the Angular dev server (and later, the production web app) to
-# call this API from a different origin.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:4200",
-        "http://127.0.0.1:4200",
-    ],
+    allow_origins=["http://localhost:4200", "http://127.0.0.1:4200"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -55,6 +51,8 @@ app.include_router(admin_leave_routes.router)
 app.include_router(admin_stats_routes.router)
 app.include_router(notification_routes.router)
 app.include_router(admin_departments_routes.router)
+app.include_router(attendance_routes.router)
+app.include_router(kpi_routes.router)
 
 
 @app.get("/health", tags=["System"])

@@ -553,3 +553,155 @@ def get_dashboard_stats(company_id: int) -> dict:
         "personal_questions": personal_questions,
         "top_users": top_users,
     }
+
+# ---------- Attendance ----------
+def upsert_attendance_record(
+    company_id: int,
+    employee_id: str,
+    date: str,
+    check_in_time: str | None,
+    check_out_time: str | None,
+    source: str = "manual",
+) -> dict:
+    """
+    Inserts a new attendance record, or updates the existing one for the
+    same (company, employee, date) — this makes bulk Excel imports safe
+    to re-run without creating duplicates.
+    """
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        INSERT INTO attendance_records (company_id, employee_id, date, check_in_time, check_out_time, source, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+        ON CONFLICT(company_id, employee_id, date)
+        DO UPDATE SET check_in_time = excluded.check_in_time,
+                      check_out_time = excluded.check_out_time,
+                      source = excluded.source
+        """,
+        (company_id, employee_id, date, check_in_time, check_out_time, source),
+    )
+    conn.commit()
+    conn.close()
+
+    return get_attendance_for_employee(company_id, employee_id, date, date)[0]
+
+
+def get_attendance_for_employee(
+    company_id: int, employee_id: str, start_date: str, end_date: str
+) -> list[dict]:
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT id, company_id, employee_id, date, check_in_time, check_out_time, source "
+        "FROM attendance_records WHERE company_id = ? AND employee_id = ? "
+        "AND date >= ? AND date <= ? ORDER BY date",
+        (company_id, employee_id, start_date, end_date),
+    )
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def calculate_attendance_metrics(
+    company_id: int,
+    employee_id: str,
+    start_date: str,
+    end_date: str,
+    work_start_time: str = "09:00",
+    expected_work_days: int | None = None,
+) -> dict:
+    """
+    Computes punctuality and attendance rates from raw attendance_records
+    within a date range. This is intentionally simple math (not AI-driven)
+    so it stays predictable and auditable by managers.
+    """
+    records = get_attendance_for_employee(company_id, employee_id, start_date, end_date)
+
+    days_present = len(records)
+    days_on_time = sum(
+        1 for r in records if r["check_in_time"] and r["check_in_time"] <= work_start_time
+    )
+
+    if expected_work_days is None:
+        # Fallback: count weekdays (Sun-Thu, common in the region) in the range
+        from datetime import date as date_cls, timedelta
+        start = date_cls.fromisoformat(start_date)
+        end = date_cls.fromisoformat(end_date)
+        expected_work_days = 0
+        current = start
+        while current <= end:
+            if current.weekday() not in (4, 5):  # Friday=4, Saturday=5 as weekend
+                expected_work_days += 1
+            current += timedelta(days=1)
+
+    attendance_rate = round((days_present / expected_work_days) * 100, 1) if expected_work_days > 0 else 0.0
+    punctuality_rate = round((days_on_time / days_present) * 100, 1) if days_present > 0 else 0.0
+
+    return {
+        "days_present": days_present,
+        "expected_work_days": expected_work_days,
+        "days_on_time": days_on_time,
+        "attendance_rate": attendance_rate,
+        "punctuality_rate": punctuality_rate,
+    }
+
+
+# ---------- KPI Evaluations ----------
+def create_kpi_evaluation(
+    company_id: int,
+    employee_id: str,
+    evaluated_by: str,
+    period: str,
+    punctuality_rate: float,
+    attendance_rate: float,
+    manager_notes: str | None,
+) -> dict:
+    conn = _get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT 1 FROM kpi_evaluations WHERE company_id = ? AND employee_id = ? AND period = ?",
+        (company_id, employee_id, period),
+    )
+    if cursor.fetchone():
+        conn.close()
+        raise ValueError(f"An evaluation for period '{period}' already exists for this employee")
+
+    cursor.execute(
+        """
+        INSERT INTO kpi_evaluations
+        (company_id, employee_id, evaluated_by, period, punctuality_rate, attendance_rate, manager_notes, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        """,
+        (company_id, employee_id, evaluated_by, period, punctuality_rate, attendance_rate, manager_notes),
+    )
+    eval_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+
+    return get_kpi_evaluation_by_id(eval_id, company_id)
+
+
+def get_kpi_evaluation_by_id(eval_id: int, company_id: int) -> dict | None:
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT * FROM kpi_evaluations WHERE id = ? AND company_id = ?",
+        (eval_id, company_id),
+    )
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def get_kpi_evaluations(company_id: int, employee_id: str) -> list[dict]:
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT * FROM kpi_evaluations WHERE company_id = ? AND employee_id = ? ORDER BY period DESC",
+        (company_id, employee_id),
+    )
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]

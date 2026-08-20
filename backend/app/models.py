@@ -208,3 +208,53 @@ class DashboardStatsResponse(BaseModel):
     policy_questions: int
     personal_questions: int
     top_users: list[TopUserEntry]
+
+# ---------- Attendance ----------
+class AttendanceRecordCreate(BaseModel):
+    employee_id: str
+    date: str  # YYYY-MM-DD
+    check_in_time: str | None = None  # HH:MM
+    check_out_time: str | None = None  # HH:MM
+
+
+class AttendanceRecord(BaseModel):
+    id: int
+    company_id: int
+    employee_id: str
+    date: str
+    check_in_time: str | None
+    check_out_time: str | None
+    source: str
+
+
+class AttendanceMetrics(BaseModel):
+    days_present: int
+    expected_work_days: int
+    days_on_time: int
+    attendance_rate: float
+    punctuality_rate: float
+
+
+# ---------- KPI Evaluations ----------
+class KpiEvaluationCreate(BaseModel):
+    employee_id: str
+    period: str  # e.g. "Q1 2026"
+    start_date: str  # date range used to compute the metrics
+    end_date: str
+    manager_notes: str | None = None
+
+
+class KpiEvaluationRecord(BaseModel):
+    id: int
+    company_id: int
+    employee_id: str
+    evaluated_by: str
+    period: str
+    punctuality_rate: float
+    attendance_rate: float
+    manager_notes: str | None
+    created_at: str
+
+
+class KpiEvaluationListResponse(BaseModel):
+    evaluations: list[KpiEvaluationRecord]

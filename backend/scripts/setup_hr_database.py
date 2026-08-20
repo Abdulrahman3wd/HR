@@ -114,7 +114,36 @@ def main():
             FOREIGN KEY (company_id) REFERENCES companies(id)
         )
     """)
+    cursor.execute("""
+        CREATE TABLE attendance_records (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            company_id INTEGER NOT NULL,
+            employee_id TEXT NOT NULL,
+            date TEXT NOT NULL,
+            check_in_time TEXT,
+            check_out_time TEXT,
+            source TEXT NOT NULL DEFAULT 'manual' CHECK(source IN ('manual', 'excel_import', 'biometric_api')),
+            created_at TEXT NOT NULL,
+            UNIQUE(company_id, employee_id, date),
+            FOREIGN KEY (company_id) REFERENCES companies(id)
+        )
+    """)
 
+    cursor.execute("""
+        CREATE TABLE kpi_evaluations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            company_id INTEGER NOT NULL,
+            employee_id TEXT NOT NULL,
+            evaluated_by TEXT NOT NULL,
+            period TEXT NOT NULL,
+            punctuality_rate REAL NOT NULL,
+            attendance_rate REAL NOT NULL,
+            manager_notes TEXT,
+            created_at TEXT NOT NULL,
+            UNIQUE(company_id, employee_id, period),
+            FOREIGN KEY (company_id) REFERENCES companies(id)
+        )
+    """)
     # ---------- Seed: one company with a small hierarchy ----------
     cursor.execute(
         "INSERT INTO companies (company_code, name, is_active, created_at) VALUES (?, ?, 1, datetime('now'))",

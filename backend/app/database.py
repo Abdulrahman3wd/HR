@@ -1,174 +1,3 @@
-"""
-database.py
-===========
-All interactions with the SQLite database.
-
-CRITICAL: This is a multi-tenant database. Every function that touches
-users, chat_logs, leave_requests, or notifications MUST filter by
-company_id. Never remove a company_id filter — doing so would leak one
-company's data to another.
-"""
-
-import sqlite3
-from app.config import HR_DB_FILE
-
-
-def _get_connection():
-    conn = sqlite3.connect(HR_DB_FILE)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-
-# ---------- Companies ----------
-def get_company_by_code(company_code: str) -> dict | None:
-    conn = _get_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        "SELECT id, company_code, name, is_active FROM companies WHERE company_code = ?",
-        (company_code.strip().upper(),),
-    )
-    row = cursor.fetchone()
-    conn.close()
-    return dict(row) if row else None
-
-
-def get_company_by_id(company_id: int) -> dict | None:
-    conn = _get_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        "SELECT id, company_code, name, is_active FROM companies WHERE id = ?",
-        (company_id,),
-    )
-    row = cursor.fetchone()
-    conn.close()
-    return dict(row) if row else None
-
-
-# ---------- Users ----------
-def get_user_by_id(employee_id: str, company_id: int) -> dict | None:
-    conn = _get_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        "SELECT employee_id, company_id, full_name, department, role, password_hash, "
-        "annual_leave_balance, sick_leave_balance "
-        "FROM users WHERE employee_id = ? AND company_id = ?",
-        (employee_id, company_id),
-    )
-    row = cursor.fetchone()
-    conn.close()
-    return dict(row) if row else None
-
-
-def get_user_public_data(employee_id: str, company_id: int) -> dict | None:
-    user = get_user_by_id(employee_id, company_id)
-    if not user:
-        return None
-    user.pop("password_hash", None)
-    return user
-
-
-def list_users(company_id: int) -> list[dict]:
-    conn = _get_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        "SELECT employee_id, company_id, full_name, department, role, "
-        "annual_leave_balance, sick_leave_balance FROM users "
-        "WHERE company_id = ? ORDER BY employee_id",
-        (company_id,),
-    )
-    rows = cursor.fetchall()
-    conn.close()
-    return [dict(row) for row in rows]
-
-
-def create_user(
-    employee_id: str,
-    company_id: int,
-    full_name: str,
-    department: str,
-    password_hash: str,
-    role: str,
-    annual_leave_balance: int,
-    sick_leave_balance: int,
-) -> dict:
-    conn = _get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute(
-        "SELECT 1 FROM users WHERE employee_id = ? AND company_id = ?",
-        (employee_id, company_id),
-    )
-    if cursor.fetchone():
-        conn.close()
-        raise ValueError(f"User ID '{employee_id}' already exists in this company")
-
-    cursor.execute(
-        "INSERT INTO users "
-        "(employee_id, company_id, full_name, department, password_hash, role, annual_leave_balance, sick_leave_balance) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-        (employee_id, company_id, full_name, department, password_hash, role, annual_leave_balance, sick_leave_balance),
-    )
-    conn.commit()
-    conn.close()
-
-    return get_user_public_data(employee_id, company_id)
-
-
-def update_user(employee_id: str, company_id: int, updates: dict) -> dict | None:
-    allowed_fields = {
-        "full_name", "department", "role",
-        "annual_leave_balance", "sick_leave_balance", "password_hash",
-    }
-    fields_to_update = {k: v for k, v in updates.items() if k in allowed_fields and v is not None}
-
-    if not fields_to_update:
-        return get_user_public_data(employee_id, company_id)
-
-    conn = _get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute(
-        "SELECT 1 FROM users WHERE employee_id = ? AND company_id = ?",
-        (employee_id, company_id),
-    )
-    if not cursor.fetchone():
-        conn.close()
-        return None
-
-    set_clause = ", ".join(f"{field} = ?" for field in fields_to_update)
-    values = list(fields_to_update.values()) + [employee_id, company_id]
-
-    cursor.execute(
-        f"UPDATE users SET {set_clause} WHERE employee_id = ? AND company_id = ?",
-        values,
-    )
-    conn.commit()
-    conn.close()
-
-    return get_user_public_data(employee_id, company_id)
-
-
-def delete_user(employee_id: str, company_id: int) -> bool:
-    conn = _get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute(
-        "SELECT 1 FROM users WHERE employee_id = ? AND company_id = ?",
-        (employee_id, company_id),
-    )
-    if not cursor.fetchone():
-        conn.close()
-        return False
-
-    cursor.execute(
-        "DELETE FROM users WHERE employee_id = ? AND company_id = ?",
-        (employee_id, company_id),
-    )
-    conn.commit()
-    conn.close()
-    return True
-
-
 # ---------- Chat Logs ----------
 def log_chat_interaction(
     company_id: int,
@@ -280,6 +109,19 @@ def get_leave_requests(
     return [dict(row) for row in rows]
 
 
+def get_team_leave_requests(company_id: int, manager_id: str, status: str | None = None) -> list[dict]:
+    """
+    Returns leave requests submitted by anyone BELOW `manager_id` in the
+    hierarchy (not just direct reports) — used for the "requests I can
+    approve" view.
+    """
+    all_requests = get_leave_requests(company_id, status=status)
+    return [
+        req for req in all_requests
+        if is_in_management_chain(manager_id, req["employee_id"], company_id)
+    ]
+
+
 def update_leave_request_status(
     request_id: int,
     company_id: int,
@@ -323,10 +165,10 @@ def update_leave_request_status(
     if new_status == "approved":
         message = (
             f"تمت الموافقة على طلب إجازتك من {request['start_date']} إلى {request['end_date']} "
-            f"({request['days_count']} يوم)."
+            f"({request['days_count']} يوم) بواسطة {reviewed_by}."
         )
     else:
-        message = f"تم رفض طلب إجازتك من {request['start_date']} إلى {request['end_date']}."
+        message = f"تم رفض طلب إجازتك من {request['start_date']} إلى {request['end_date']} بواسطة {reviewed_by}."
     create_notification(company_id, request["employee_id"], message)
 
     return get_leave_request_by_id(request_id, company_id)
@@ -410,6 +252,9 @@ def get_dashboard_stats(company_id: int) -> dict:
     cursor.execute("SELECT COUNT(*) as count FROM users WHERE company_id = ? AND role = 'admin'", (company_id,))
     admin_count = cursor.fetchone()["count"]
 
+    cursor.execute("SELECT COUNT(*) as count FROM users WHERE company_id = ? AND role = 'hr'", (company_id,))
+    hr_count = cursor.fetchone()["count"]
+
     cursor.execute("SELECT COUNT(*) as count FROM leave_requests WHERE company_id = ? AND status = 'pending'", (company_id,))
     pending_leaves = cursor.fetchone()["count"]
 
@@ -443,7 +288,8 @@ def get_dashboard_stats(company_id: int) -> dict:
     return {
         "employee_count": employee_count,
         "admin_count": admin_count,
-        "total_users": employee_count + admin_count,
+        "hr_count": hr_count,
+        "total_users": employee_count + admin_count + hr_count,
         "pending_leaves": pending_leaves,
         "approved_leaves": approved_leaves,
         "rejected_leaves": rejected_leaves,

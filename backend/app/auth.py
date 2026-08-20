@@ -2,10 +2,6 @@
 auth.py
 =======
 FastAPI dependencies for authentication/authorization, built on JWT.
-
-Every authenticated request now carries a company_id, which routers and
-database functions MUST use to filter data. This is the core mechanism
-that keeps different companies' data isolated from each other.
 """
 
 from fastapi import Header, HTTPException, Depends
@@ -13,10 +9,6 @@ from app.security import decode_access_token
 
 
 def get_current_user(authorization: str = Header(...)) -> dict:
-    """
-    Expects header: Authorization: Bearer <token>
-    Returns {"employee_id": str, "role": str, "company_id": int}
-    """
     if not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Invalid authorization header")
 
@@ -36,4 +28,15 @@ def get_current_user(authorization: str = Header(...)) -> dict:
 def require_admin(current_user: dict = Depends(get_current_user)) -> dict:
     if current_user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Admin privileges required")
+    return current_user
+
+
+def require_hr_or_admin(current_user: dict = Depends(get_current_user)) -> dict:
+    """
+    HR manages company-wide data (policies, all employee records), same as
+    admin for those purposes — but HR does NOT get user-management or
+    role-changing privileges (that stays admin-only).
+    """
+    if current_user["role"] not in ("admin", "hr"):
+        raise HTTPException(status_code=403, detail="HR or admin privileges required")
     return current_user

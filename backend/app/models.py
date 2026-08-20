@@ -6,6 +6,8 @@ Pydantic models shared across routers (request/response shapes).
 
 from pydantic import BaseModel
 
+UserRole = str  # 'admin' | 'hr' | 'employee' (kept as str for simplicity with SQLite)
+
 
 # ---------- Auth ----------
 class LoginRequest(BaseModel):
@@ -21,7 +23,6 @@ class LoginResponse(BaseModel):
     company_id: int
     company_name: str
     full_name: str
-    department: str
     role: str
 
 
@@ -29,7 +30,8 @@ class CurrentUserResponse(BaseModel):
     employee_id: str
     company_id: int
     full_name: str
-    department: str
+    department_id: int | None
+    manager_id: str | None
     role: str
     annual_leave_balance: int
     sick_leave_balance: int
@@ -82,19 +84,35 @@ class ChatLogListResponse(BaseModel):
     total: int
 
 
-# ---------- Documents (Admin) ----------
+# ---------- Documents (Admin/HR) ----------
 class UploadResponse(BaseModel):
     message: str
     total_chunks: int
     processed_files: list[str]
 
 
-# ---------- User management (Admin) ----------
+# ---------- Departments ----------
+class DepartmentRecord(BaseModel):
+    id: int
+    company_id: int
+    name: str
+
+
+class DepartmentCreateRequest(BaseModel):
+    name: str
+
+
+class DepartmentListResponse(BaseModel):
+    departments: list[DepartmentRecord]
+
+
+# ---------- User management (Admin/HR) ----------
 class UserRecord(BaseModel):
     employee_id: str
     company_id: int
     full_name: str
-    department: str
+    department_id: int | None
+    manager_id: str | None
     role: str
     annual_leave_balance: int
     sick_leave_balance: int
@@ -103,16 +121,18 @@ class UserRecord(BaseModel):
 class UserCreateRequest(BaseModel):
     employee_id: str
     full_name: str
-    department: str
     password: str
-    role: str = "employee"
+    role: str = "employee"  # 'admin' | 'hr' | 'employee'
+    department_id: int | None = None
+    manager_id: str | None = None
     annual_leave_balance: int = 21
     sick_leave_balance: int = 7
 
 
 class UserUpdateRequest(BaseModel):
     full_name: str | None = None
-    department: str | None = None
+    department_id: int | None = None
+    manager_id: str | None = None
     role: str | None = None
     password: str | None = None
     annual_leave_balance: int | None = None
@@ -178,6 +198,7 @@ class TopUserEntry(BaseModel):
 class DashboardStatsResponse(BaseModel):
     employee_count: int
     admin_count: int
+    hr_count: int
     total_users: int
     pending_leaves: int
     approved_leaves: int

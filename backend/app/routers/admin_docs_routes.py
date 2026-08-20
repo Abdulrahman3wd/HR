@@ -1,15 +1,17 @@
 """
 admin_docs_routes.py
 =====================
-Admin-only endpoints for uploading and indexing THIS company's policy
-documents. Each company's documents and vector index are fully isolated.
+HR/Admin endpoints for uploading and indexing company policy documents.
+Protected by require_hr_or_admin (JWT with role == "admin" or "hr").
+
+If a file with the same name is uploaded again, it replaces the old version.
 """
 
 import time
 from pathlib import Path
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 
-from app.auth import require_admin
+from app.auth import require_hr_or_admin
 from app.models import UploadResponse
 from app import ingestion
 
@@ -26,7 +28,7 @@ def ensure_folder_exists(path: Path):
 
 
 @router.post("/upload", response_model=UploadResponse)
-async def upload_document(file: UploadFile = File(...), admin_user: dict = Depends(require_admin)):
+async def upload_document(file: UploadFile = File(...), current_user: dict = Depends(require_hr_or_admin)):
     file_ext = Path(file.filename).suffix.lower()
 
     if file_ext not in ALLOWED_EXTENSIONS:
@@ -35,7 +37,7 @@ async def upload_document(file: UploadFile = File(...), admin_user: dict = Depen
             detail=f"Unsupported file type '{file_ext}'. Allowed: .txt, .pdf, .docx",
         )
 
-    company_id = admin_user["company_id"]
+    company_id = current_user["company_id"]
     docs_path = ingestion.get_company_docs_folder(company_id)
     ensure_folder_exists(docs_path)
 
@@ -68,8 +70,8 @@ async def upload_document(file: UploadFile = File(...), admin_user: dict = Depen
 
 
 @router.get("/list")
-def list_documents(admin_user: dict = Depends(require_admin)):
-    docs_path = ingestion.get_company_docs_folder(admin_user["company_id"])
+def list_documents(current_user: dict = Depends(require_hr_or_admin)):
+    docs_path = ingestion.get_company_docs_folder(current_user["company_id"])
     if not docs_path.exists():
         return {"files": []}
 
@@ -78,8 +80,8 @@ def list_documents(admin_user: dict = Depends(require_admin)):
 
 
 @router.delete("/{filename}")
-def delete_document(filename: str, admin_user: dict = Depends(require_admin)):
-    company_id = admin_user["company_id"]
+def delete_document(filename: str, current_user: dict = Depends(require_hr_or_admin)):
+    company_id = current_user["company_id"]
     docs_path = ingestion.get_company_docs_folder(company_id)
     file_path = docs_path / filename
 

@@ -22,6 +22,7 @@ from app.routers import (
     admin_leave_routes,
     admin_stats_routes,
     notification_routes,
+    admin_departments_routes,
 )
 from app.rate_limiter import limiter
 
@@ -53,6 +54,7 @@ app.include_router(leave_routes.router)
 app.include_router(admin_leave_routes.router)
 app.include_router(admin_stats_routes.router)
 app.include_router(notification_routes.router)
+app.include_router(admin_departments_routes.router)
 
 
 @app.get("/health", tags=["System"])

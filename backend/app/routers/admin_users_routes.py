@@ -1,37 +1,32 @@
 """
 admin_users_routes.py
 ======================
-Admin-only endpoints for managing user accounts within THEIR OWN company.
-Every query is scoped by the admin's company_id from their token, so an
-admin from one company can never see or modify another company's users.
+HR can view all users (needed for org-wide visibility and hiring context).
+Only Admin can create/update/delete users or change roles — this keeps
+sensitive account management restricted to the top-level admin.
 """
 
 from fastapi import APIRouter, HTTPException, Depends
 
-from app.auth import require_admin
-from app.models import (
-    UserRecord,
-    UserCreateRequest,
-    UserUpdateRequest,
-    UserListResponse,
-)
+from app.auth import require_admin, require_hr_or_admin
+from app.models import UserRecord, UserCreateRequest, UserUpdateRequest, UserListResponse
 from app.security import hash_password
 from app import database
 
 router = APIRouter(prefix="/admin/users", tags=["Admin - Users"])
 
-VALID_ROLES = {"admin", "employee"}
+VALID_ROLES = {"admin", "hr", "employee"}
 
 
-@router.get("", response_model=UserListResponse, dependencies=[Depends(require_admin)])
-def get_all_users(admin_user: dict = Depends(require_admin)):
-    users = database.list_users(admin_user["company_id"])
+@router.get("", response_model=UserListResponse)
+def get_all_users(current_user: dict = Depends(require_hr_or_admin)):
+    users = database.list_users(current_user["company_id"])
     return UserListResponse(users=users, total=len(users))
 
 
-@router.get("/{employee_id}", response_model=UserRecord, dependencies=[Depends(require_admin)])
-def get_user(employee_id: str, admin_user: dict = Depends(require_admin)):
-    user = database.get_user_public_data(employee_id.strip().upper(), admin_user["company_id"])
+@router.get("/{employee_id}", response_model=UserRecord)
+def get_user(employee_id: str, current_user: dict = Depends(require_hr_or_admin)):
+    user = database.get_user_public_data(employee_id.strip().upper(), current_user["company_id"])
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
@@ -49,9 +44,10 @@ def add_user(request: UserCreateRequest, admin_user: dict = Depends(require_admi
             employee_id=employee_id,
             company_id=admin_user["company_id"],
             full_name=request.full_name,
-            department=request.department,
             password_hash=hash_password(request.password),
             role=request.role,
+            department_id=request.department_id,
+            manager_id=request.manager_id,
             annual_leave_balance=request.annual_leave_balance,
             sick_leave_balance=request.sick_leave_balance,
         )

@@ -43,7 +43,6 @@ def login(request: Request, login_data: LoginRequest):
         company_id=company["id"],
         company_name=company["name"],
         full_name=user["full_name"],
-        department=user["department"],
         role=user["role"],
     )
 
@@ -58,7 +57,8 @@ def get_my_profile(current_user: dict = Depends(get_current_user)):
         employee_id=user["employee_id"],
         company_id=user["company_id"],
         full_name=user["full_name"],
-        department=user["department"],
+        department_id=user["department_id"],
+        manager_id=user["manager_id"],
         role=user["role"],
         annual_leave_balance=user["annual_leave_balance"],
         sick_leave_balance=user["sick_leave_balance"],

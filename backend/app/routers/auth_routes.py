@@ -117,9 +117,10 @@ def signup_company(request: Request, signup_data: CompanySignupRequest):
     admin_id = signup_data.admin_employee_id.strip().upper()
     cursor.execute(
         "INSERT INTO users "
-        "(employee_id, company_id, full_name, department, password_hash, role, annual_leave_balance, sick_leave_balance) "
-        "VALUES (?, ?, ?, ?, ?, 'admin', 21, 7)",
-        (admin_id, company_id, signup_data.admin_full_name.strip(), "Management", hash_password(signup_data.admin_password)),
+        "(employee_id, company_id, full_name, department_id, manager_id, password_hash, role, "
+        "annual_leave_balance, sick_leave_balance) "
+        "VALUES (?, ?, ?, NULL, NULL, ?, 'admin', 21, 7)",
+        (admin_id, company_id, signup_data.admin_full_name.strip(), hash_password(signup_data.admin_password)),
     )
 
     conn.commit()

@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule, Building2, UserRound, Lock } from 'lucide-angular';
 
 import { AuthService } from '../../../core/services/auth.service';
@@ -10,7 +10,7 @@ import { LangToggle } from '../../../shared/components/lang-toggle/lang-toggle';
 
 @Component({
   selector: 'app-login',
-  imports: [ReactiveFormsModule, LucideAngularModule, ThemeToggle, LangToggle],
+  imports: [ReactiveFormsModule, LucideAngularModule, ThemeToggle, LangToggle, RouterLink],
   templateUrl: './login.html',
   styleUrl: './login.css',
 })

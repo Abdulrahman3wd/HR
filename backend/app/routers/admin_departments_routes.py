@@ -6,7 +6,7 @@ HR/Admin endpoints for managing departments within a company.
 
 from fastapi import APIRouter, HTTPException, Depends
 
-from app.auth import require_hr_or_admin
+from app.auth import require_hr_or_admin, get_current_user
 from app.models import DepartmentRecord, DepartmentCreateRequest, DepartmentListResponse
 from app import database
 
@@ -14,7 +14,7 @@ router = APIRouter(prefix="/departments", tags=["Departments"])
 
 
 @router.get("", response_model=DepartmentListResponse)
-def list_departments(current_user: dict = Depends(require_hr_or_admin)):
+def list_departments(current_user: dict = Depends(get_current_user)):
     departments = database.list_departments(current_user["company_id"])
     return DepartmentListResponse(departments=departments)
 

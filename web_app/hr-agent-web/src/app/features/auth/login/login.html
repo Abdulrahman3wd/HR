@@ -51,5 +51,9 @@
         {{ isLoading() ? i18n.t('login_loading') : i18n.t('login_button') }}
       </button>
     </form>
+    <p class="signup-hint">
+  {{ i18n.t('login_no_account') }}
+  <a routerLink="/signup" class="signup-link">{{ i18n.t('login_signup_link') }}</a>
+</p>
   </div>
 </div>

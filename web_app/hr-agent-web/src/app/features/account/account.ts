@@ -3,8 +3,10 @@ import { ReactiveFormsModule, FormBuilder, Validators, AbstractControl, Validati
 import { LucideAngularModule, KeyRound } from 'lucide-angular';
 
 import { AccountService } from '../../core/services/account.service';
+import { DepartmentService } from '../../core/services/department.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { CurrentUserProfile } from '../../core/models/account.model';
+import { Department } from '../../core/models/department.model';
 
 function passwordsMatchValidator(control: AbstractControl): ValidationErrors | null {
   const newPassword = control.get('new_password')?.value;
@@ -21,8 +23,10 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
 export class Account implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly accountService = inject(AccountService);
+  private readonly departmentService = inject(DepartmentService);
   protected readonly i18n = inject(I18nService);
 
+  protected readonly departments = signal<Department[]>([]);
   protected readonly KeyIcon = KeyRound;
 
   protected readonly profile = signal<CurrentUserProfile | null>(null);
@@ -42,13 +46,22 @@ export class Account implements OnInit {
     this.accountService.getMyProfile().subscribe({
       next: (data) => this.profile.set(data),
     });
-  }
 
+    this.departmentService.list().subscribe({
+      next: (data) => this.departments.set(data.departments),
+      error: () => this.departments.set([]), // employees may not have permission; fail silently
+    });
+  }
 protected roleLabel(role: 'admin' | 'hr' | 'employee'): string {
   if (role === 'admin') return this.i18n.t('account_role_admin');
   if (role === 'hr') return this.i18n.t('account_role_hr');
   return this.i18n.t('account_role_employee');
 }
+
+  protected departmentName(departmentId: number | null): string {
+    if (!departmentId) return '—';
+    return this.departments().find((d) => d.id === departmentId)?.name ?? '—';
+  }
   protected onSubmit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();

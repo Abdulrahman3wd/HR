@@ -1,12 +1,9 @@
 """
 setup_hr_database.py
 =====================
-Creates the multi-tenant schema with organizational hierarchy support:
-    companies -> departments
-    companies -> users (with manager_id self-reference + department_id)
-    -> chat_logs / leave_requests / notifications
-
-Run once (or whenever you want to reset sample data) with:
+Creates the multi-tenant schema with organizational hierarchy, KPI, and
+recruitment (ATS) support. Run once (or whenever you want to reset
+sample user data) with:
     python scripts/setup_hr_database.py
 """
 
@@ -25,6 +22,10 @@ def main():
     cursor = conn.cursor()
     cursor.execute("PRAGMA foreign_keys = ON")
 
+    cursor.execute("DROP TABLE IF EXISTS candidates")
+    cursor.execute("DROP TABLE IF EXISTS job_openings")
+    cursor.execute("DROP TABLE IF EXISTS kpi_evaluations")
+    cursor.execute("DROP TABLE IF EXISTS attendance_records")
     cursor.execute("DROP TABLE IF EXISTS notifications")
     cursor.execute("DROP TABLE IF EXISTS leave_requests")
     cursor.execute("DROP TABLE IF EXISTS chat_logs")
@@ -51,10 +52,6 @@ def main():
         )
     """)
 
-    # Note: users.manager_id references another user's (employee_id, company_id).
-    # SQLite composite FKs to a composite PK are allowed, but we keep it simple
-    # and enforce the relationship in application code instead of a strict FK,
-    # since manager_id must be nullable and scoped to the same company.
     cursor.execute("""
         CREATE TABLE users (
             employee_id TEXT NOT NULL,
@@ -114,8 +111,9 @@ def main():
             FOREIGN KEY (company_id) REFERENCES companies(id)
         )
     """)
+
     cursor.execute("""
-        CREATE TABLE attendance_records (
+        CREATE TABLE IF NOT EXISTS attendance_records (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             company_id INTEGER NOT NULL,
             employee_id TEXT NOT NULL,
@@ -130,7 +128,7 @@ def main():
     """)
 
     cursor.execute("""
-        CREATE TABLE kpi_evaluations (
+        CREATE TABLE IF NOT EXISTS kpi_evaluations (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             company_id INTEGER NOT NULL,
             employee_id TEXT NOT NULL,
@@ -144,6 +142,47 @@ def main():
             FOREIGN KEY (company_id) REFERENCES companies(id)
         )
     """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS job_openings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            company_id INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            department_id INTEGER,
+            description TEXT NOT NULL,
+            requirements TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open', 'closed')),
+            created_by TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (company_id) REFERENCES companies(id),
+            FOREIGN KEY (department_id) REFERENCES departments(id)
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS candidates (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            company_id INTEGER NOT NULL,
+            job_opening_id INTEGER NOT NULL,
+            full_name TEXT NOT NULL,
+            email TEXT,
+            phone TEXT,
+            cv_filename TEXT,
+            cv_text TEXT,
+            match_score INTEGER,
+            matched_skills TEXT,
+            missing_skills TEXT,
+            stage TEXT NOT NULL DEFAULT 'applied' CHECK(
+                stage IN ('applied', 'reviewing', 'hr_interview', 'technical_interview', 'accepted', 'rejected')
+            ),
+            notes TEXT,
+            added_by TEXT NOT NULL,
+            applied_at TEXT NOT NULL,
+            FOREIGN KEY (company_id) REFERENCES companies(id),
+            FOREIGN KEY (job_opening_id) REFERENCES job_openings(id)
+        )
+    """)
+
     # ---------- Seed: one company with a small hierarchy ----------
     cursor.execute(
         "INSERT INTO companies (company_code, name, is_active, created_at) VALUES (?, ?, 1, datetime('now'))",
@@ -157,7 +196,6 @@ def main():
     )
     globex_id = cursor.lastrowid
 
-    # Departments for Acme
     cursor.execute("INSERT INTO departments (company_id, name) VALUES (?, ?)", (acme_id, "Engineering"))
     eng_dept_id = cursor.lastrowid
     cursor.execute("INSERT INTO departments (company_id, name) VALUES (?, ?)", (acme_id, "Marketing"))
@@ -165,7 +203,6 @@ def main():
     cursor.execute("INSERT INTO departments (company_id, name) VALUES (?, ?)", (acme_id, "Human Resources"))
     hr_dept_id = cursor.lastrowid
 
-    # Department for Globex
     cursor.execute("INSERT INTO departments (company_id, name) VALUES (?, ?)", (globex_id, "Sales"))
     sales_dept_id = cursor.lastrowid
 
@@ -178,33 +215,20 @@ def main():
              hash_password(password), role, annual, sick),
         )
 
-    # ---------- Acme hierarchy ----------
-    # ADMIN1: top-level admin, no manager
     insert_user("ADMIN1", acme_id, "Acme Admin", None, None, "admin123", "admin", 21, 7)
-
-    # HR1: HR role, reports to Admin
     insert_user("HR1", acme_id, "Heba Rashad (HR)", hr_dept_id, "ADMIN1", "hr123", "hr", 21, 7)
-
-    # PM1: Project Manager, reports to Admin
     insert_user("PM1", acme_id, "Ahmed Mostafa (PM)", eng_dept_id, "ADMIN1", "pass123", "employee", 21, 7)
-
-    # TL1: Team Leader, reports to PM1
     insert_user("TL1", acme_id, "Youssef Adel (TL)", eng_dept_id, "PM1", "pass123", "employee", 21, 7)
-
-    # EMP001: Employee, reports to TL1
     insert_user("EMP001", acme_id, "Karim Nabil", eng_dept_id, "TL1", "pass123", "employee", 14, 5)
-
-    # EMP002: Employee, reports directly to PM1 (no team leader)
     insert_user("EMP002", acme_id, "Sara Youssef", mkt_dept_id, "PM1", "pass123", "employee", 21, 7)
 
-    # ---------- Globex (simple, flat) ----------
     insert_user("ADMIN1", globex_id, "Globex Admin", None, None, "admin123", "admin", 21, 7)
     insert_user("EMP001", globex_id, "John Carter", sales_dept_id, "ADMIN1", "pass123", "employee", 18, 6)
 
     conn.commit()
     conn.close()
 
-    print(f"[DONE] Multi-tenant hierarchical database ready at: {HR_DB_FILE}")
+    print(f"[DONE] Database ready at: {HR_DB_FILE}")
     print("[INFO] Acme hierarchy:")
     print("       ADMIN1 (admin)")
     print("        └── HR1 (hr)")

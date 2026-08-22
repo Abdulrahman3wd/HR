@@ -705,3 +705,175 @@ def get_kpi_evaluations(company_id: int, employee_id: str) -> list[dict]:
     rows = cursor.fetchall()
     conn.close()
     return [dict(row) for row in rows]
+
+# ---------- Job Openings ----------
+def create_job_opening(
+    company_id: int,
+    title: str,
+    description: str,
+    requirements: str,
+    created_by: str,
+    department_id: int | None = None,
+) -> dict:
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO job_openings (company_id, title, department_id, description, requirements, status, created_by, created_at) "
+        "VALUES (?, ?, ?, ?, ?, 'open', ?, datetime('now'))",
+        (company_id, title, department_id, description, requirements, created_by),
+    )
+    job_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return get_job_opening_by_id(job_id, company_id)
+
+
+def get_job_opening_by_id(job_id: int, company_id: int) -> dict | None:
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM job_openings WHERE id = ? AND company_id = ?", (job_id, company_id))
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def list_job_openings(company_id: int, status: str | None = None) -> list[dict]:
+    conn = _get_connection()
+    cursor = conn.cursor()
+    if status:
+        cursor.execute(
+            "SELECT * FROM job_openings WHERE company_id = ? AND status = ? ORDER BY created_at DESC",
+            (company_id, status),
+        )
+    else:
+        cursor.execute(
+            "SELECT * FROM job_openings WHERE company_id = ? ORDER BY created_at DESC",
+            (company_id,),
+        )
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def update_job_opening_status(job_id: int, company_id: int, status: str) -> dict | None:
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT 1 FROM job_openings WHERE id = ? AND company_id = ?", (job_id, company_id))
+    if not cursor.fetchone():
+        conn.close()
+        return None
+
+    cursor.execute(
+        "UPDATE job_openings SET status = ? WHERE id = ? AND company_id = ?",
+        (status, job_id, company_id),
+    )
+    conn.commit()
+    conn.close()
+    return get_job_opening_by_id(job_id, company_id)
+
+
+# ---------- Candidates ----------
+def create_candidate(
+    company_id: int,
+    job_opening_id: int,
+    full_name: str,
+    added_by: str,
+    email: str | None = None,
+    phone: str | None = None,
+    cv_filename: str | None = None,
+    cv_text: str | None = None,
+    match_score: int | None = None,
+    matched_skills: list[str] | None = None,
+    missing_skills: list[str] | None = None,
+) -> dict:
+    import json
+
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        INSERT INTO candidates
+        (company_id, job_opening_id, full_name, email, phone, cv_filename, cv_text,
+         match_score, matched_skills, missing_skills, stage, added_by, applied_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'applied', ?, datetime('now'))
+        """,
+        (
+            company_id, job_opening_id, full_name, email, phone, cv_filename, cv_text,
+            match_score,
+            json.dumps(matched_skills) if matched_skills else None,
+            json.dumps(missing_skills) if missing_skills else None,
+            added_by,
+        ),
+    )
+    candidate_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return get_candidate_by_id(candidate_id, company_id)
+
+
+def _parse_candidate_row(row: dict) -> dict:
+    import json
+    row["matched_skills"] = json.loads(row["matched_skills"]) if row["matched_skills"] else []
+    row["missing_skills"] = json.loads(row["missing_skills"]) if row["missing_skills"] else []
+    return row
+
+
+def get_candidate_by_id(candidate_id: int, company_id: int) -> dict | None:
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM candidates WHERE id = ? AND company_id = ?", (candidate_id, company_id))
+    row = cursor.fetchone()
+    conn.close()
+    return _parse_candidate_row(dict(row)) if row else None
+
+
+def list_candidates(company_id: int, job_opening_id: int | None = None) -> list[dict]:
+    conn = _get_connection()
+    cursor = conn.cursor()
+    if job_opening_id:
+        cursor.execute(
+            "SELECT * FROM candidates WHERE company_id = ? AND job_opening_id = ? ORDER BY applied_at DESC",
+            (company_id, job_opening_id),
+        )
+    else:
+        cursor.execute(
+            "SELECT * FROM candidates WHERE company_id = ? ORDER BY applied_at DESC",
+            (company_id,),
+        )
+    rows = cursor.fetchall()
+    conn.close()
+    return [_parse_candidate_row(dict(row)) for row in rows]
+
+
+def update_candidate_stage(candidate_id: int, company_id: int, stage: str) -> dict | None:
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT 1 FROM candidates WHERE id = ? AND company_id = ?", (candidate_id, company_id))
+    if not cursor.fetchone():
+        conn.close()
+        return None
+
+    cursor.execute(
+        "UPDATE candidates SET stage = ? WHERE id = ? AND company_id = ?",
+        (stage, candidate_id, company_id),
+    )
+    conn.commit()
+    conn.close()
+    return get_candidate_by_id(candidate_id, company_id)
+
+
+def update_candidate_notes(candidate_id: int, company_id: int, notes: str) -> dict | None:
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT 1 FROM candidates WHERE id = ? AND company_id = ?", (candidate_id, company_id))
+    if not cursor.fetchone():
+        conn.close()
+        return None
+
+    cursor.execute(
+        "UPDATE candidates SET notes = ? WHERE id = ? AND company_id = ?",
+        (notes, candidate_id, company_id),
+    )
+    conn.commit()
+    conn.close()
+    return get_candidate_by_id(candidate_id, company_id)

@@ -51,13 +51,19 @@
       <lucide-icon [img]="AccountIcon" [size]="19" />
       @if (!layout.isSidebarCollapsed()) { <span>{{ i18n.t('nav_account') }}</span> }
     </a>
+@if (auth.currentUser()?.role === 'admin' || auth.currentUser()?.role === 'hr') {
+  <a routerLink="/recruitment" routerLinkActive="active" class="nav-item" (click)="onNavItemClick()">
+    <lucide-icon [img]="RecruitmentIcon" [size]="19" />
+    @if (!layout.isSidebarCollapsed()) { <span>{{ i18n.t('nav_recruitment') }}</span> }
+  </a>
+}
 
-    @if (auth.isAdmin()) {
-      <a routerLink="/admin" routerLinkActive="active" class="nav-item" (click)="onNavItemClick()">
-        <lucide-icon [img]="AdminIcon" [size]="19" />
-        @if (!layout.isSidebarCollapsed()) { <span>{{ i18n.t('nav_admin') }}</span> }
-      </a>
-    }
+@if (auth.isAdmin()) {
+  <a routerLink="/admin" routerLinkActive="active" class="nav-item" (click)="onNavItemClick()">
+    <lucide-icon [img]="AdminIcon" [size]="19" />
+    @if (!layout.isSidebarCollapsed()) { <span>{{ i18n.t('nav_admin') }}</span> }
+  </a>
+}
   </nav>
 
   <button (click)="logout()" class="nav-item logout-btn">

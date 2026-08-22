@@ -21,10 +21,18 @@ export const routes: Routes = [
         loadComponent: () => import('./features/leave/leave').then((m) => m.Leave),
       },
       {
+        path: 'team-leave',
+        loadComponent: () => import('./features/team-leave/team-leave').then((m) => m.TeamLeave),
+      },
+      {
+        path: 'kpi',
+        loadComponent: () => import('./features/kpi/kpi').then((m) => m.Kpi),
+      },
+      {
         path: 'history',
         loadComponent: () => import('./features/history/history').then((m) => m.History),
       },
-    {
+      {
         path: 'account',
         loadComponent: () => import('./features/account/account').then((m) => m.Account),
       },
@@ -33,18 +41,14 @@ export const routes: Routes = [
         canActivate: [adminGuard],
         loadComponent: () => import('./features/dashboard/dashboard').then((m) => m.Dashboard),
       },
-     {
+      {
+        path: 'recruitment',
+        loadComponent: () => import('./features/recruitment/recruitment').then((m) => m.Recruitment),
+      },
+      {
         path: 'admin',
         canActivate: [adminGuard],
         loadComponent: () => import('./features/admin/admin').then((m) => m.Admin),
-      },
-      {
-        path: 'team-leave',
-        loadComponent: () => import('./features/team-leave/team-leave').then((m) => m.TeamLeave),
-      },
-        {
-        path: 'kpi',
-        loadComponent: () => import('./features/kpi/kpi').then((m) => m.Kpi),
       },
       { path: '', redirectTo: 'chat', pathMatch: 'full' },
     ],

@@ -1,0 +1,202 @@
+<div class="recruitment-page">
+  <h2 class="page-title">
+    <lucide-icon [img]="JobsIcon" [size]="18" />
+    {{ i18n.t('nav_recruitment') }}
+  </h2>
+
+  <div class="tabs">
+    <button class="tab-btn" [class.tab-active]="activeTab() === 'jobs'" (click)="switchTab('jobs')">
+      {{ i18n.t('recruitment_jobs_tab') }}
+    </button>
+    <button class="tab-btn" [class.tab-active]="activeTab() === 'pipeline'" (click)="switchTab('pipeline')">
+      {{ i18n.t('recruitment_pipeline_tab') }}
+    </button>
+  </div>
+
+  <!-- ================= JOBS TAB ================= -->
+  @if (activeTab() === 'jobs') {
+    <div class="tab-panel">
+      <button class="add-btn" (click)="toggleJobForm()">
+        <lucide-icon [img]="showJobForm() ? CloseIcon : PlusIcon" [size]="15" />
+        {{ i18n.t('recruitment_new_job') }}
+      </button>
+
+      @if (showJobForm()) {
+        <div class="form-card">
+          <form [formGroup]="jobForm" (ngSubmit)="createJob()" class="job-form">
+            <input formControlName="title" [placeholder]="i18n.t('recruitment_job_title')" class="field-input" />
+            <textarea
+              formControlName="description"
+              [placeholder]="i18n.t('recruitment_job_description')"
+              class="field-input"
+              rows="3"
+            ></textarea>
+            <textarea
+              formControlName="requirements"
+              [placeholder]="i18n.t('recruitment_job_requirements')"
+              class="field-input"
+              rows="2"
+            ></textarea>
+
+            @if (jobStatus()) {
+              <div class="status-msg status-error">{{ jobStatus()!.text }}</div>
+            }
+
+            <button type="submit" class="save-btn" [disabled]="isCreatingJob()">
+              {{ i18n.t('recruitment_create_job') }}
+            </button>
+          </form>
+        </div>
+      }
+
+      @if (jobs().length === 0) {
+        <p class="empty-text">{{ i18n.t('recruitment_no_jobs') }}</p>
+      } @else {
+        <div class="jobs-list">
+          @for (job of jobs(); track job.id) {
+            <div class="job-card">
+              <div class="job-card-header">
+                <span class="job-title">{{ job.title }}</span>
+                <span
+                  class="job-status-badge"
+                  [class.status-open]="job.status === 'open'"
+                  [class.status-closed]="job.status === 'closed'"
+                >
+                  {{ job.status === 'open' ? i18n.t('recruitment_status_open') : i18n.t('recruitment_status_closed') }}
+                </span>
+              </div>
+              <p class="job-description">{{ job.description }}</p>
+              <p class="job-requirements">{{ job.requirements }}</p>
+
+              <div class="job-actions">
+                @if (job.status === 'open') {
+                  <button class="link-btn" (click)="closeJob(job.id)">{{ i18n.t('recruitment_close_job') }}</button>
+                } @else {
+                  <button class="link-btn" (click)="reopenJob(job.id)">{{ i18n.t('recruitment_reopen_job') }}</button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ================= PIPELINE TAB ================= -->
+  @if (activeTab() === 'pipeline') {
+    <div class="tab-panel pipeline-panel">
+      <div class="pipeline-toolbar">
+        <select class="field-input" (change)="onJobFilterChange($any($event.target).value)">
+          <option value="">{{ i18n.t('recruitment_select_job') }}</option>
+          @for (job of jobs(); track job.id) {
+            <option [value]="job.id">{{ job.title }}</option>
+          }
+        </select>
+
+        @if (selectedJobId()) {
+          <button class="add-btn" (click)="toggleCandidateForm()">
+            <lucide-icon [img]="showCandidateForm() ? CloseIcon : PlusIcon" [size]="15" />
+            {{ i18n.t('recruitment_add_candidate') }}
+          </button>
+        }
+      </div>
+
+      @if (showCandidateForm()) {
+        <div class="form-card">
+          <form [formGroup]="candidateForm" (ngSubmit)="addCandidate()" class="candidate-form">
+            <input formControlName="full_name" [placeholder]="i18n.t('recruitment_candidate_name')" class="field-input" />
+            <input formControlName="email" [placeholder]="i18n.t('recruitment_candidate_email')" class="field-input" />
+            <input formControlName="phone" [placeholder]="i18n.t('recruitment_candidate_phone')" class="field-input" />
+
+            <div class="cv-upload-row">
+              <input type="file" (change)="onCvFileSelected($event)" accept=".pdf,.docx,.txt" class="file-input" />
+              <span class="cv-hint">
+                <lucide-icon [img]="UploadIcon" [size]="13" />
+                {{ i18n.t('recruitment_screening_hint') }}
+              </span>
+            </div>
+
+            @if (candidateStatus()) {
+              <div class="status-msg status-error">{{ candidateStatus()!.text }}</div>
+            }
+
+            <button type="submit" class="save-btn" [disabled]="isAddingCandidate()">
+              {{ isAddingCandidate() ? i18n.t('recruitment_submitting') : i18n.t('recruitment_submit_candidate') }}
+            </button>
+          </form>
+        </div>
+      }
+
+      @if (selectedJobId()) {
+        <div class="kanban-board">
+          @for (stage of stages; track stage) {
+            <div class="kanban-column">
+              <div class="kanban-column-header">
+                {{ stageLabel(stage) }}
+                <span class="kanban-count">{{ candidatesInStage(stage).length }}</span>
+              </div>
+
+              <div class="kanban-cards">
+                @for (candidate of candidatesInStage(stage); track candidate.id) {
+                  <div class="candidate-card" (click)="toggleExpand(candidate.id)">
+                    <div class="candidate-card-header">
+                      <span class="candidate-name">{{ candidate.full_name }}</span>
+                      @if (candidate.match_score !== null) {
+                        <span class="match-badge" [class]="scoreColorClass(candidate.match_score)">
+                          {{ candidate.match_score }}%
+                        </span>
+                      }
+                    </div>
+
+                    @if (expandedCandidateId() === candidate.id) {
+                      <div class="candidate-details" (click)="$event.stopPropagation()">
+                        @if (candidate.email) {
+                          <div class="detail-row">{{ candidate.email }}</div>
+                        }
+                        @if (candidate.phone) {
+                          <div class="detail-row">{{ candidate.phone }}</div>
+                        }
+
+                        @if (candidate.matched_skills.length > 0) {
+                          <div class="skills-block">
+                            <span class="skills-label skills-good">{{ i18n.t('recruitment_matched_skills') }}</span>
+                            <div class="skills-tags">
+                              @for (skill of candidate.matched_skills; track skill) {
+                                <span class="skill-tag tag-good">✔ {{ skill }}</span>
+                              }
+                            </div>
+                          </div>
+                        }
+
+                        @if (candidate.missing_skills.length > 0) {
+                          <div class="skills-block">
+                            <span class="skills-label skills-bad">{{ i18n.t('recruitment_missing_skills') }}</span>
+                            <div class="skills-tags">
+                              @for (skill of candidate.missing_skills; track skill) {
+                                <span class="skill-tag tag-bad">✖ {{ skill }}</span>
+                              }
+                            </div>
+                          </div>
+                        }
+
+                        <select
+                          class="stage-select"
+                          [ngModel]="candidate.stage"
+                          (ngModelChange)="moveToStage(candidate.id, $event)"
+                        >
+                          @for (s of stages; track s) {
+                           <option [value]="s">{{ stageLabel(s) }}</option>
+                          }
+                        </select>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

@@ -255,3 +255,62 @@ class KpiEvaluationRecord(BaseModel):
 
 class KpiEvaluationListResponse(BaseModel):
     evaluations: list[KpiEvaluationRecord]
+
+# ---------- Recruitment / ATS ----------
+class JobOpeningCreate(BaseModel):
+    title: str
+    description: str
+    requirements: str
+    department_id: int | None = None
+
+
+class JobOpeningRecord(BaseModel):
+    id: int
+    company_id: int
+    title: str
+    department_id: int | None
+    description: str
+    requirements: str
+    status: str
+    created_by: str
+    created_at: str
+
+
+class JobOpeningListResponse(BaseModel):
+    jobs: list[JobOpeningRecord]
+
+
+class CandidateCreate(BaseModel):
+    job_opening_id: int
+    full_name: str
+    email: str | None = None
+    phone: str | None = None
+
+
+class CandidateRecord(BaseModel):
+    id: int
+    company_id: int
+    job_opening_id: int
+    full_name: str
+    email: str | None
+    phone: str | None
+    cv_filename: str | None
+    match_score: int | None
+    matched_skills: list[str]
+    missing_skills: list[str]
+    stage: str
+    notes: str | None
+    added_by: str
+    applied_at: str
+
+
+class CandidateListResponse(BaseModel):
+    candidates: list[CandidateRecord]
+
+
+class CandidateStageUpdate(BaseModel):
+    stage: str
+
+
+class CandidateNotesUpdate(BaseModel):
+    notes: str

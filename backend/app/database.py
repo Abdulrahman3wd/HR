@@ -93,7 +93,8 @@ def get_user_by_id(employee_id: str, company_id: int) -> dict | None:
     cursor = conn.cursor()
     cursor.execute(
         "SELECT employee_id, company_id, full_name, department_id, manager_id, role, password_hash, "
-        "annual_leave_balance, sick_leave_balance "
+        "annual_leave_balance, sick_leave_balance, basic_salary, has_social_insurance, "
+        "social_insurance_percentage, has_health_insurance, health_insurance_percentage "
         "FROM users WHERE employee_id = ? AND company_id = ?",
         (employee_id, company_id),
     )
@@ -115,7 +116,8 @@ def list_users(company_id: int) -> list[dict]:
     cursor = conn.cursor()
     cursor.execute(
         "SELECT employee_id, company_id, full_name, department_id, manager_id, role, "
-        "annual_leave_balance, sick_leave_balance FROM users "
+        "annual_leave_balance, sick_leave_balance, basic_salary, has_social_insurance, "
+        "social_insurance_percentage, has_health_insurance, health_insurance_percentage FROM users "
         "WHERE company_id = ? ORDER BY employee_id",
         (company_id,),
     )
@@ -163,6 +165,8 @@ def update_user(employee_id: str, company_id: int, updates: dict) -> dict | None
     allowed_fields = {
         "full_name", "department_id", "manager_id", "role",
         "annual_leave_balance", "sick_leave_balance", "password_hash",
+        "basic_salary", "has_social_insurance", "social_insurance_percentage",
+        "has_health_insurance", "health_insurance_percentage",
     }
     fields_to_update = {k: v for k, v in updates.items() if k in allowed_fields and v is not None}
 
@@ -1187,4 +1191,78 @@ def get_monthly_late_usage(company_id: int, employee_id: str, year: int, month: 
         "excess_minutes": excess_minutes,
         "from_permissions_minutes": permission_minutes,
         "from_attendance_minutes": attendance_minutes,
+    }
+
+# ---------- Payroll ----------
+def calculate_net_salary(company_id: int, employee_id: str, year: int, month: int) -> dict:
+    """
+    Net salary = basic salary
+                 - social insurance (if enabled)
+                 - health insurance (if enabled)
+                 - deduction for late minutes beyond the monthly allowance
+
+    Late-minute deduction rate = basic_salary / (expected_work_days * work_hours_per_day * 60)
+    """
+    user = get_user_by_id(employee_id, company_id)
+    if not user:
+        raise ValueError("Employee not found")
+
+    basic_salary = user["basic_salary"]
+
+    social_insurance_amount = (
+        basic_salary * (user["social_insurance_percentage"] / 100)
+        if user["has_social_insurance"]
+        else 0
+    )
+    health_insurance_amount = (
+        basic_salary * (user["health_insurance_percentage"] / 100)
+        if user["has_health_insurance"]
+        else 0
+    )
+
+    late_usage = get_monthly_late_usage(company_id, employee_id, year, month)
+    excess_minutes = late_usage["excess_minutes"]
+
+    settings = get_company_settings(company_id)
+
+    def to_minutes(t: str) -> int:
+        h, m = map(int, t.split(":"))
+        return h * 60 + m
+
+    work_minutes_per_day = to_minutes(settings["work_end_time"]) - to_minutes(settings["work_start_time"])
+
+    from calendar import monthrange
+    from datetime import date as date_cls, timedelta
+
+    last_day = monthrange(year, month)[1]
+    start = date_cls(year, month, 1)
+    end = date_cls(year, month, last_day)
+    weekend_days = set(settings["weekend_days"])
+    holiday_dates = get_holiday_dates_set(company_id, year=year)
+
+    expected_work_days = 0
+    current = start
+    while current <= end:
+        if current.weekday() not in weekend_days and current.isoformat() not in holiday_dates:
+            expected_work_days += 1
+        current += timedelta(days=1)
+
+    total_work_minutes_in_month = expected_work_days * work_minutes_per_day
+    minute_rate = basic_salary / total_work_minutes_in_month if total_work_minutes_in_month > 0 else 0
+    late_deduction = round(minute_rate * excess_minutes, 2)
+
+    total_deductions = round(social_insurance_amount + health_insurance_amount + late_deduction, 2)
+    net_salary = round(basic_salary - total_deductions, 2)
+
+    return {
+        "employee_id": employee_id,
+        "year": year,
+        "month": month,
+        "basic_salary": basic_salary,
+        "social_insurance_amount": round(social_insurance_amount, 2),
+        "health_insurance_amount": round(health_insurance_amount, 2),
+        "late_excess_minutes": excess_minutes,
+        "late_deduction_amount": late_deduction,
+        "total_deductions": total_deductions,
+        "net_salary": net_salary,
     }

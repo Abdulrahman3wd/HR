@@ -66,6 +66,11 @@ def main():
             role TEXT NOT NULL CHECK(role IN ('admin', 'hr', 'employee')),
             annual_leave_balance INTEGER NOT NULL DEFAULT 21,
             sick_leave_balance INTEGER NOT NULL DEFAULT 7,
+            basic_salary REAL NOT NULL DEFAULT 0,
+            has_social_insurance INTEGER NOT NULL DEFAULT 0,
+            social_insurance_percentage REAL NOT NULL DEFAULT 0,
+            has_health_insurance INTEGER NOT NULL DEFAULT 0,
+            health_insurance_percentage REAL NOT NULL DEFAULT 0,
             PRIMARY KEY (employee_id, company_id),
             FOREIGN KEY (company_id) REFERENCES companies(id),
             FOREIGN KEY (department_id) REFERENCES departments(id)
@@ -264,13 +269,15 @@ def main():
     cursor.execute("INSERT INTO departments (company_id, name) VALUES (?, ?)", (globex_id, "Sales"))
     sales_dept_id = cursor.lastrowid
 
-    def insert_user(employee_id, company_id, full_name, department_id, manager_id, password, role, annual, sick):
+    def insert_user(employee_id, company_id, full_name, department_id, manager_id, password, role, annual, sick, salary=10000):
         cursor.execute(
             "INSERT INTO users "
             "(employee_id, company_id, full_name, department_id, manager_id, password_hash, role, "
-            "annual_leave_balance, sick_leave_balance) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "annual_leave_balance, sick_leave_balance, basic_salary, has_social_insurance, "
+            "social_insurance_percentage, has_health_insurance, health_insurance_percentage) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 11, 1, 3)",
             (employee_id, company_id, full_name, department_id, manager_id,
-             hash_password(password), role, annual, sick),
+             hash_password(password), role, annual, sick, salary),
         )
 
     insert_user("ADMIN1", acme_id, "Acme Admin", None, None, "admin123", "admin", 21, 7)

@@ -116,17 +116,27 @@ class UserRecord(BaseModel):
     role: str
     annual_leave_balance: int
     sick_leave_balance: int
+    basic_salary: float
+    has_social_insurance: bool
+    social_insurance_percentage: float
+    has_health_insurance: bool
+    health_insurance_percentage: float
 
 
 class UserCreateRequest(BaseModel):
     employee_id: str
     full_name: str
     password: str
-    role: str = "employee"  # 'admin' | 'hr' | 'employee'
+    role: str = "employee"
     department_id: int | None = None
     manager_id: str | None = None
     annual_leave_balance: int = 21
     sick_leave_balance: int = 7
+    basic_salary: float = 0
+    has_social_insurance: bool = False
+    social_insurance_percentage: float = 0
+    has_health_insurance: bool = False
+    health_insurance_percentage: float = 0
 
 
 class UserUpdateRequest(BaseModel):
@@ -137,6 +147,11 @@ class UserUpdateRequest(BaseModel):
     password: str | None = None
     annual_leave_balance: int | None = None
     sick_leave_balance: int | None = None
+    basic_salary: float | None = None
+    has_social_insurance: bool | None = None
+    social_insurance_percentage: float | None = None
+    has_health_insurance: bool | None = None
+    health_insurance_percentage: float | None = None
 
 
 class UserListResponse(BaseModel):
@@ -384,3 +399,17 @@ class MonthlyLateUsageResponse(BaseModel):
     excess_minutes: int
     from_permissions_minutes: int
     from_attendance_minutes: int
+
+    
+# ---------- Payroll ----------
+class NetSalaryResponse(BaseModel):
+    employee_id: str
+    year: int
+    month: int
+    basic_salary: float
+    social_insurance_amount: float
+    health_insurance_amount: float
+    late_excess_minutes: int
+    late_deduction_amount: float
+    total_deductions: float
+    net_salary: float

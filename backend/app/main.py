@@ -26,6 +26,8 @@ from app.routers import (
     attendance_routes,
     kpi_routes,
     recruitment_routes,
+    company_settings_routes,
+    late_permission_routes,
 )
 from app.rate_limiter import limiter
 
@@ -55,7 +57,9 @@ app.include_router(admin_departments_routes.router)
 app.include_router(attendance_routes.router)
 app.include_router(kpi_routes.router)
 app.include_router(recruitment_routes.router)
-
+app.include_router(company_settings_routes.router)
+app.include_router(company_settings_routes.holidays_router)
+app.include_router(late_permission_routes.router)
 
 @app.get("/health", tags=["System"])
 def health_check():

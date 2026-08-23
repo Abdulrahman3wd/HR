@@ -1,9 +1,9 @@
 """
 setup_hr_database.py
 =====================
-Creates the multi-tenant schema with organizational hierarchy, KPI, and
-recruitment (ATS) support. Run once (or whenever you want to reset
-sample user data) with:
+Creates the multi-tenant schema with organizational hierarchy, KPI,
+recruitment (ATS), and company work-settings support. Run once (or
+whenever you want to reset sample user data) with:
     python scripts/setup_hr_database.py
 """
 
@@ -21,7 +21,10 @@ def main():
     conn = sqlite3.connect(HR_DB_FILE)
     cursor = conn.cursor()
     cursor.execute("PRAGMA foreign_keys = ON")
-
+    cursor.execute("DROP TABLE IF EXISTS late_permissions")
+    cursor.execute("DROP TABLE IF EXISTS public_holidays")
+    cursor.execute("DROP TABLE IF EXISTS public_holidays")
+    cursor.execute("DROP TABLE IF EXISTS company_settings")
     cursor.execute("DROP TABLE IF EXISTS candidates")
     cursor.execute("DROP TABLE IF EXISTS job_openings")
     cursor.execute("DROP TABLE IF EXISTS kpi_evaluations")
@@ -113,7 +116,7 @@ def main():
     """)
 
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS attendance_records (
+        CREATE TABLE attendance_records (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             company_id INTEGER NOT NULL,
             employee_id TEXT NOT NULL,
@@ -128,7 +131,7 @@ def main():
     """)
 
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS kpi_evaluations (
+        CREATE TABLE kpi_evaluations (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             company_id INTEGER NOT NULL,
             employee_id TEXT NOT NULL,
@@ -144,7 +147,7 @@ def main():
     """)
 
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS job_openings (
+        CREATE TABLE job_openings (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             company_id INTEGER NOT NULL,
             title TEXT NOT NULL,
@@ -160,7 +163,7 @@ def main():
     """)
 
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS candidates (
+        CREATE TABLE candidates (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             company_id INTEGER NOT NULL,
             job_opening_id INTEGER NOT NULL,
@@ -183,6 +186,45 @@ def main():
         )
     """)
 
+    cursor.execute("""
+        CREATE TABLE company_settings (
+            company_id INTEGER PRIMARY KEY,
+            weekend_days TEXT NOT NULL DEFAULT '[4]',
+            work_start_time TEXT NOT NULL DEFAULT '09:00',
+            work_end_time TEXT NOT NULL DEFAULT '17:00',
+            flex_minutes INTEGER NOT NULL DEFAULT 60,
+            monthly_late_allowance_minutes INTEGER NOT NULL DEFAULT 120,
+            FOREIGN KEY (company_id) REFERENCES companies(id)
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE public_holidays (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            company_id INTEGER NOT NULL,
+            date TEXT NOT NULL,
+            name TEXT NOT NULL,
+            FOREIGN KEY (company_id) REFERENCES companies(id)
+        )
+    """)
+    cursor.execute("""
+        CREATE TABLE late_permissions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            company_id INTEGER NOT NULL,
+            employee_id TEXT NOT NULL,
+            date TEXT NOT NULL,
+            from_time TEXT NOT NULL,
+            to_time TEXT NOT NULL,
+            minutes_count INTEGER NOT NULL,
+            reason TEXT,
+            status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'approved', 'rejected')),
+            created_at TEXT NOT NULL,
+            reviewed_by TEXT,
+            reviewed_at TEXT,
+            FOREIGN KEY (company_id) REFERENCES companies(id)
+        )
+    """)
+
     # ---------- Seed: one company with a small hierarchy ----------
     cursor.execute(
         "INSERT INTO companies (company_code, name, is_active, created_at) VALUES (?, ?, 1, datetime('now'))",
@@ -195,6 +237,22 @@ def main():
         ("GLOBEX", "Globex Inc"),
     )
     globex_id = cursor.lastrowid
+
+    cursor.execute(
+        "INSERT INTO company_settings (company_id, weekend_days, work_start_time, work_end_time, "
+        "flex_minutes, monthly_late_allowance_minutes) VALUES (?, '[4]', '09:00', '17:00', 60, 120)",
+        (acme_id,),
+    )
+    cursor.execute(
+        "INSERT INTO company_settings (company_id, weekend_days, work_start_time, work_end_time, "
+        "flex_minutes, monthly_late_allowance_minutes) VALUES (?, '[4,5]', '09:00', '17:00', 30, 120)",
+        (globex_id,),
+    )
+
+    cursor.execute(
+        "INSERT INTO public_holidays (company_id, date, name) VALUES (?, ?, ?)",
+        (acme_id, "2026-01-25", "ثورة 25 يناير"),
+    )
 
     cursor.execute("INSERT INTO departments (company_id, name) VALUES (?, ?)", (acme_id, "Engineering"))
     eng_dept_id = cursor.lastrowid

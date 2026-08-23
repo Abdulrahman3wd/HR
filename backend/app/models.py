@@ -233,7 +233,7 @@ class AttendanceMetrics(BaseModel):
     days_on_time: int
     attendance_rate: float
     punctuality_rate: float
-
+    total_net_late_minutes: int
 
 # ---------- KPI Evaluations ----------
 class KpiEvaluationCreate(BaseModel):
@@ -314,3 +314,73 @@ class CandidateStageUpdate(BaseModel):
 
 class CandidateNotesUpdate(BaseModel):
     notes: str
+
+# ---------- Company Settings ----------
+class CompanySettingsResponse(BaseModel):
+    company_id: int
+    weekend_days: list[int]  # 0=Monday ... 6=Sunday
+    work_start_time: str
+    work_end_time: str
+    flex_minutes: int
+    monthly_late_allowance_minutes: int
+
+
+class CompanySettingsUpdate(BaseModel):
+    weekend_days: list[int] | None = None
+    work_start_time: str | None = None
+    work_end_time: str | None = None
+    flex_minutes: int | None = None
+    monthly_late_allowance_minutes: int | None = None
+
+
+# ---------- Public Holidays ----------
+class PublicHolidayCreate(BaseModel):
+    date: str  # YYYY-MM-DD
+    name: str
+
+
+class PublicHolidayRecord(BaseModel):
+    id: int
+    company_id: int
+    date: str
+    name: str
+
+
+class PublicHolidayListResponse(BaseModel):
+    holidays: list[PublicHolidayRecord]
+
+# ---------- Late Permissions ----------
+class LatePermissionCreate(BaseModel):
+    date: str  # YYYY-MM-DD
+    from_time: str  # HH:MM
+    to_time: str  # HH:MM
+    reason: str | None = None
+
+
+class LatePermissionRecord(BaseModel):
+    id: int
+    company_id: int
+    employee_id: str
+    date: str
+    from_time: str
+    to_time: str
+    minutes_count: int
+    reason: str | None
+    status: str
+    created_at: str
+    reviewed_by: str | None
+    reviewed_at: str | None
+
+
+class LatePermissionListResponse(BaseModel):
+    permissions: list[LatePermissionRecord]
+
+
+class MonthlyLateUsageResponse(BaseModel):
+    year: int
+    month: int
+    allowance_minutes: int
+    used_minutes: int
+    excess_minutes: int
+    from_permissions_minutes: int
+    from_attendance_minutes: int

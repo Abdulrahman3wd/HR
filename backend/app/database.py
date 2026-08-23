@@ -608,32 +608,80 @@ def calculate_attendance_metrics(
     employee_id: str,
     start_date: str,
     end_date: str,
-    work_start_time: str = "09:00",
-    expected_work_days: int | None = None,
 ) -> dict:
     """
-    Computes punctuality and attendance rates from raw attendance_records
-    within a date range. This is intentionally simple math (not AI-driven)
-    so it stays predictable and auditable by managers.
+    Computes attendance/punctuality metrics from raw attendance_records,
+    using the company's actual configured weekend days, work hours, and
+    public holidays — not hardcoded assumptions.
+
+    Net daily lateness = (actual check-in - official start) 
+                        + (official end - actual check-out)
+    Any early/late arrival that gets offset by staying later/leaving
+    earlier reduces the net lateness for that day (never goes negative).
     """
+    from datetime import date as date_cls, datetime, timedelta
+
+    settings = get_company_settings(company_id)
+    weekend_days = set(settings["weekend_days"])
+    work_start = settings["work_start_time"]
+    work_end = settings["work_end_time"]
+
+    year = date_cls.fromisoformat(start_date).year
+    holiday_dates = get_holiday_dates_set(company_id, year=year)
+    # Also include the following year's holidays in case the range spans Dec-Jan
+    end_year = date_cls.fromisoformat(end_date).year
+    if end_year != year:
+        holiday_dates |= get_holiday_dates_set(company_id, year=end_year)
+
+    # Expected work days: weekdays that aren't a configured weekend day
+    # and aren't a public holiday
+    start = date_cls.fromisoformat(start_date)
+    end = date_cls.fromisoformat(end_date)
+    expected_work_days = 0
+    current = start
+    while current <= end:
+        is_weekend = current.weekday() in weekend_days
+        is_holiday = current.isoformat() in holiday_dates
+        if not is_weekend and not is_holiday:
+            expected_work_days += 1
+        current += timedelta(days=1)
+
     records = get_attendance_for_employee(company_id, employee_id, start_date, end_date)
-
     days_present = len(records)
-    days_on_time = sum(
-        1 for r in records if r["check_in_time"] and r["check_in_time"] <= work_start_time
-    )
 
-    if expected_work_days is None:
-        # Fallback: count weekdays (Sun-Thu, common in the region) in the range
-        from datetime import date as date_cls, timedelta
-        start = date_cls.fromisoformat(start_date)
-        end = date_cls.fromisoformat(end_date)
-        expected_work_days = 0
-        current = start
-        while current <= end:
-            if current.weekday() not in (4, 5):  # Friday=4, Saturday=5 as weekend
-                expected_work_days += 1
-            current += timedelta(days=1)
+    def to_minutes(t: str) -> int:
+        h, m = map(int, t.split(":"))
+        return h * 60 + m
+
+    work_start_min = to_minutes(work_start)
+    work_end_min = to_minutes(work_end)
+
+    total_net_late_minutes = 0
+    days_on_time = 0
+
+    for r in records:
+        check_in = r["check_in_time"]
+        check_out = r["check_out_time"]
+
+        late_arrival = 0
+        if check_in:
+            late_arrival = max(0, to_minutes(check_in) - work_start_min)
+
+        late_departure_offset = 0
+        if check_out:
+            late_departure_offset = max(0, work_end_min - to_minutes(check_out))
+            # staying later than official end reduces lateness too
+            stayed_extra = max(0, to_minutes(check_out) - work_end_min)
+            late_departure_offset = max(0, late_departure_offset - stayed_extra)
+
+        net_late = max(0, late_arrival - 0) + late_departure_offset
+        # If the employee arrived early, that can offset a late departure too
+        arrived_early = max(0, work_start_min - to_minutes(check_in)) if check_in else 0
+        net_late = max(0, late_arrival + late_departure_offset - arrived_early)
+
+        total_net_late_minutes += net_late
+        if net_late == 0:
+            days_on_time += 1
 
     attendance_rate = round((days_present / expected_work_days) * 100, 1) if expected_work_days > 0 else 0.0
     punctuality_rate = round((days_on_time / days_present) * 100, 1) if days_present > 0 else 0.0
@@ -644,9 +692,8 @@ def calculate_attendance_metrics(
         "days_on_time": days_on_time,
         "attendance_rate": attendance_rate,
         "punctuality_rate": punctuality_rate,
+        "total_net_late_minutes": total_net_late_minutes,
     }
-
-
 # ---------- KPI Evaluations ----------
 def create_kpi_evaluation(
     company_id: int,
@@ -877,3 +924,267 @@ def update_candidate_notes(candidate_id: int, company_id: int, notes: str) -> di
     conn.commit()
     conn.close()
     return get_candidate_by_id(candidate_id, company_id)
+
+# ---------- Company Settings ----------
+def get_company_settings(company_id: int) -> dict:
+    import json
+
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM company_settings WHERE company_id = ?", (company_id,))
+    row = cursor.fetchone()
+    conn.close()
+
+    if not row:
+        # Sensible defaults if a company somehow has no settings row yet
+        return {
+            "company_id": company_id,
+            "weekend_days": [4],
+            "work_start_time": "09:00",
+            "work_end_time": "17:00",
+            "flex_minutes": 60,
+            "monthly_late_allowance_minutes": 120,
+        }
+
+    settings = dict(row)
+    settings["weekend_days"] = json.loads(settings["weekend_days"])
+    return settings
+
+
+def update_company_settings(company_id: int, updates: dict) -> dict:
+    import json
+
+    conn = _get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT 1 FROM company_settings WHERE company_id = ?", (company_id,))
+    exists = cursor.fetchone()
+
+    payload = dict(updates)
+    if "weekend_days" in payload:
+        payload["weekend_days"] = json.dumps(payload["weekend_days"])
+
+    if not exists:
+        cursor.execute(
+            "INSERT INTO company_settings (company_id, weekend_days, work_start_time, work_end_time, "
+            "flex_minutes, monthly_late_allowance_minutes) VALUES (?, ?, ?, ?, ?, ?)",
+            (
+                company_id,
+                payload.get("weekend_days", "[4]"),
+                payload.get("work_start_time", "09:00"),
+                payload.get("work_end_time", "17:00"),
+                payload.get("flex_minutes", 60),
+                payload.get("monthly_late_allowance_minutes", 120),
+            ),
+        )
+    else:
+        allowed_fields = {"weekend_days", "work_start_time", "work_end_time", "flex_minutes", "monthly_late_allowance_minutes"}
+        fields_to_update = {k: v for k, v in payload.items() if k in allowed_fields}
+        if fields_to_update:
+            set_clause = ", ".join(f"{field} = ?" for field in fields_to_update)
+            values = list(fields_to_update.values()) + [company_id]
+            cursor.execute(f"UPDATE company_settings SET {set_clause} WHERE company_id = ?", values)
+
+    conn.commit()
+    conn.close()
+    return get_company_settings(company_id)
+
+
+# ---------- Public Holidays ----------
+def list_public_holidays(company_id: int, year: int | None = None) -> list[dict]:
+    conn = _get_connection()
+    cursor = conn.cursor()
+    if year:
+        cursor.execute(
+            "SELECT * FROM public_holidays WHERE company_id = ? AND date LIKE ? ORDER BY date",
+            (company_id, f"{year}-%"),
+        )
+    else:
+        cursor.execute(
+            "SELECT * FROM public_holidays WHERE company_id = ? ORDER BY date",
+            (company_id,),
+        )
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def create_public_holiday(company_id: int, date: str, name: str) -> dict:
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO public_holidays (company_id, date, name) VALUES (?, ?, ?)",
+        (company_id, date, name),
+    )
+    holiday_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return {"id": holiday_id, "company_id": company_id, "date": date, "name": name}
+
+
+def delete_public_holiday(holiday_id: int, company_id: int) -> bool:
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT 1 FROM public_holidays WHERE id = ? AND company_id = ?",
+        (holiday_id, company_id),
+    )
+    if not cursor.fetchone():
+        conn.close()
+        return False
+
+    cursor.execute("DELETE FROM public_holidays WHERE id = ? AND company_id = ?", (holiday_id, company_id))
+    conn.commit()
+    conn.close()
+    return True
+
+
+def get_holiday_dates_set(company_id: int, year: int | None = None) -> set[str]:
+    """Convenience helper: returns just the date strings, for quick membership checks."""
+    holidays = list_public_holidays(company_id, year=year)
+    return {h["date"] for h in holidays}
+
+# ---------- Late Permissions ----------
+def create_late_permission(
+    company_id: int, employee_id: str, date: str, from_time: str, to_time: str, reason: str | None
+) -> dict:
+    def to_minutes(t: str) -> int:
+        h, m = map(int, t.split(":"))
+        return h * 60 + m
+
+    minutes_count = max(0, to_minutes(to_time) - to_minutes(from_time))
+
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO late_permissions "
+        "(company_id, employee_id, date, from_time, to_time, minutes_count, reason, status, created_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now'))",
+        (company_id, employee_id, date, from_time, to_time, minutes_count, reason),
+    )
+    perm_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return get_late_permission_by_id(perm_id, company_id)
+
+
+def get_late_permission_by_id(perm_id: int, company_id: int) -> dict | None:
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM late_permissions WHERE id = ? AND company_id = ?", (perm_id, company_id))
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def get_late_permissions(company_id: int, employee_id: str | None = None, status: str | None = None) -> list[dict]:
+    conn = _get_connection()
+    cursor = conn.cursor()
+    query = "SELECT * FROM late_permissions WHERE company_id = ?"
+    params = [company_id]
+    if employee_id:
+        query += " AND employee_id = ?"
+        params.append(employee_id)
+    if status:
+        query += " AND status = ?"
+        params.append(status)
+    query += " ORDER BY created_at DESC"
+    cursor.execute(query, params)
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def update_late_permission_status(perm_id: int, company_id: int, new_status: str, reviewed_by: str) -> dict | None:
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM late_permissions WHERE id = ? AND company_id = ?", (perm_id, company_id))
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        return None
+
+    perm = dict(row)
+    if perm["status"] != "pending":
+        conn.close()
+        raise ValueError(f"Permission is already '{perm['status']}'")
+
+    cursor.execute(
+        "UPDATE late_permissions SET status = ?, reviewed_by = ?, reviewed_at = datetime('now') "
+        "WHERE id = ? AND company_id = ?",
+        (new_status, reviewed_by, perm_id, company_id),
+    )
+    conn.commit()
+    conn.close()
+
+    message = (
+        f"تمت الموافقة على إذن التأخير بتاريخ {perm['date']} من {perm['from_time']} إلى {perm['to_time']}."
+        if new_status == "approved"
+        else f"تم رفض إذن التأخير بتاريخ {perm['date']}."
+    )
+    create_notification(company_id, perm["employee_id"], message)
+
+    return get_late_permission_by_id(perm_id, company_id)
+
+
+def get_monthly_late_usage(company_id: int, employee_id: str, year: int, month: int) -> dict:
+    """
+    Computes total late minutes consumed this month from BOTH sources:
+    - approved late_permissions for days that HAVE a permission
+    - automatic net-lateness from attendance_records for days WITHOUT one
+    (a day is never double-counted between the two sources).
+    """
+    from calendar import monthrange
+
+    start_date = f"{year:04d}-{month:02d}-01"
+    last_day = monthrange(year, month)[1]
+    end_date = f"{year:04d}-{month:02d}-{last_day:02d}"
+
+    approved_permissions = [
+        p for p in get_late_permissions(company_id, employee_id=employee_id, status="approved")
+        if start_date <= p["date"] <= end_date
+    ]
+    permission_dates = {p["date"] for p in approved_permissions}
+    permission_minutes = sum(p["minutes_count"] for p in approved_permissions)
+
+    settings = get_company_settings(company_id)
+    work_start = settings["work_start_time"]
+    work_end = settings["work_end_time"]
+
+    def to_minutes(t: str) -> int:
+        h, m = map(int, t.split(":"))
+        return h * 60 + m
+
+    work_start_min = to_minutes(work_start)
+    work_end_min = to_minutes(work_end)
+
+    records = get_attendance_for_employee(company_id, employee_id, start_date, end_date)
+    attendance_minutes = 0
+
+    for r in records:
+        if r["date"] in permission_dates:
+            continue  # already counted via the permission for that day
+
+        check_in = r["check_in_time"]
+        check_out = r["check_out_time"]
+
+        late_arrival = max(0, to_minutes(check_in) - work_start_min) if check_in else 0
+        late_departure = max(0, work_end_min - to_minutes(check_out)) if check_out else 0
+        arrived_early = max(0, work_start_min - to_minutes(check_in)) if check_in else 0
+
+        net_late = max(0, late_arrival + late_departure - arrived_early)
+        attendance_minutes += net_late
+
+    total_used_minutes = permission_minutes + attendance_minutes
+    allowance = settings["monthly_late_allowance_minutes"]
+    excess_minutes = max(0, total_used_minutes - allowance)
+
+    return {
+        "year": year,
+        "month": month,
+        "allowance_minutes": allowance,
+        "used_minutes": total_used_minutes,
+        "excess_minutes": excess_minutes,
+        "from_permissions_minutes": permission_minutes,
+        "from_attendance_minutes": attendance_minutes,
+    }

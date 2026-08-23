@@ -18,6 +18,10 @@
   <lucide-icon [img]="AttendanceIcon" [size]="16" />
   {{ i18n.t('admin_tab_attendance') }}
 </button>
+<button class="tab-btn" [class.tab-active]="activeTab() === 'settings'" (click)="switchTab('settings')">
+  <lucide-icon [img]="SettingsIcon" [size]="16" />
+  {{ i18n.t('admin_tab_settings') }}
+</button>
   </div>
 
   @if (activeTab() === 'users') {
@@ -241,6 +245,107 @@
           >
             {{ attendanceImportStatus()!.text }}
           </div>
+        }
+      </div>
+    </div>
+  }
+    @if (activeTab() === 'settings') {
+    <div class="tab-panel">
+      <div class="form-card">
+        <h3 class="card-title">
+          <lucide-icon [img]="SettingsIcon" [size]="16" />
+          {{ i18n.t('settings_work_hours_title') }}
+        </h3>
+
+        <form [formGroup]="settingsForm" class="settings-form">
+          <div class="form-row-3">
+            <div class="form-field">
+              <label class="field-label">{{ i18n.t('settings_work_start') }}</label>
+              <input type="time" formControlName="work_start_time" class="field-input" />
+            </div>
+            <div class="form-field">
+              <label class="field-label">{{ i18n.t('settings_work_end') }}</label>
+              <input type="time" formControlName="work_end_time" class="field-input" />
+            </div>
+            <div class="form-field">
+              <label class="field-label">{{ i18n.t('settings_flex_minutes') }}</label>
+              <input type="number" formControlName="flex_minutes" class="field-input" />
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label class="field-label">{{ i18n.t('settings_late_allowance') }}</label>
+            <input type="number" formControlName="monthly_late_allowance_minutes" class="field-input" style="max-width: 200px;" />
+          </div>
+
+          <div class="form-field">
+            <label class="field-label">{{ i18n.t('settings_weekend_title') }}</label>
+            <div class="weekday-picker">
+              @for (day of weekDays; track day) {
+                <button
+                  type="button"
+                  class="weekday-btn"
+                  [class.weekday-selected]="selectedWeekendDays().has(day)"
+                  (click)="toggleWeekendDay(day)"
+                >
+                 {{ dayLabel(day)}}
+                </button>
+              }
+            </div>
+          </div>
+
+          @if (settingsStatus()) {
+            <div
+              class="status-msg"
+              [class.status-success]="settingsStatus()!.type === 'success'"
+              [class.status-error]="settingsStatus()!.type === 'error'"
+            >
+              {{ settingsStatus()!.text }}
+            </div>
+          }
+
+          <button type="button" class="save-btn" (click)="saveSettings()" [disabled]="isSavingSettings()">
+            {{ i18n.t('settings_save') }}
+          </button>
+        </form>
+      </div>
+
+      <div class="table-card">
+        <h3 class="card-title">
+          <lucide-icon [img]="HolidayIcon" [size]="16" />
+          {{ i18n.t('settings_holidays_title') }}
+        </h3>
+
+        <div class="holiday-add-row">
+          <input
+            type="date"
+            [ngModel]="newHolidayDate()"
+            (ngModelChange)="newHolidayDate.set($event)"
+            class="field-input"
+          />
+          <input
+            type="text"
+            [ngModel]="newHolidayName()"
+            (ngModelChange)="newHolidayName.set($event)"
+            [placeholder]="i18n.t('settings_holiday_name')"
+            class="field-input"
+          />
+          <button class="save-btn" (click)="addHoliday()">{{ i18n.t('settings_add_holiday') }}</button>
+        </div>
+
+        @if (holidays().length === 0) {
+          <p class="empty-text">{{ i18n.t('settings_no_holidays') }}</p>
+        } @else {
+          <ul class="docs-list">
+            @for (holiday of holidays(); track holiday.id) {
+              <li class="doc-item">
+                <span>{{ holiday.date }} — {{ holiday.name }}</span>
+                <button class="icon-btn icon-btn-danger" (click)="deleteHoliday(holiday.id)">
+                  <lucide-icon [img]="DeleteIcon" [size]="15" />
+                </button>
+              </li>
+            }
+          </ul>
         }
       </div>
     </div>

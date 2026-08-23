@@ -1,14 +1,16 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { ReactiveFormsModule, FormsModule, FormBuilder, Validators } from '@angular/forms';
-import { LucideAngularModule, Users, FileText, Building2, Pencil, Trash2, Upload, Clock } from 'lucide-angular';
-
+import { LucideAngularModule, Users, FileText, Building2, Pencil, Trash2, Upload, Clock, Settings, CalendarHeart } from 'lucide-angular';
+import { TranslationKey } from '../../core/services/translations';
 import { AdminService } from '../../core/services/admin.service';
 import { DepartmentService } from '../../core/services/department.service';
+import { CompanySettingsService } from '../../core/services/company-settings.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { AdminUserRecord, UserRole } from '../../core/models/admin.model';
 import { Department } from '../../core/models/department.model';
+import { CompanySettings, PublicHoliday } from '../../core/models/company-settings.model';
 
-type AdminTab = 'users' | 'departments' | 'docs' | 'attendance';
+type AdminTab = 'users' | 'departments' | 'docs' | 'attendance' | 'settings';
 
 @Component({
   selector: 'app-admin',
@@ -20,6 +22,7 @@ export class Admin implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly adminService = inject(AdminService);
   private readonly departmentService = inject(DepartmentService);
+  private readonly companySettingsService = inject(CompanySettingsService);
   protected readonly i18n = inject(I18nService);
 
   protected readonly UsersIcon = Users;
@@ -29,6 +32,10 @@ export class Admin implements OnInit {
   protected readonly DeleteIcon = Trash2;
   protected readonly UploadIcon = Upload;
   protected readonly AttendanceIcon = Clock;
+  protected readonly SettingsIcon = Settings;
+  protected readonly HolidayIcon = CalendarHeart;
+
+  protected readonly weekDays = [0, 1, 2, 3, 4, 5, 6];
 
   protected readonly activeTab = signal<AdminTab>('users');
 
@@ -63,12 +70,31 @@ export class Admin implements OnInit {
   protected readonly attendanceFile = signal<File | null>(null);
   protected readonly isImportingAttendance = signal(false);
   protected readonly attendanceImportStatus = signal<{ type: 'success' | 'error'; text: string } | null>(null);
+
+    // ---------- Company settings state ----------
+  protected readonly settings = signal<CompanySettings | null>(null);
+  protected readonly selectedWeekendDays = signal<Set<number>>(new Set());
+  protected readonly settingsForm = this.fb.nonNullable.group({
+    work_start_time: ['09:00'],
+    work_end_time: ['17:00'],
+    flex_minutes: [60],
+    monthly_late_allowance_minutes: [120],
+  });
+  protected readonly isSavingSettings = signal(false);
+  protected readonly settingsStatus = signal<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // ---------- Holidays state ----------
+  protected readonly holidays = signal<PublicHoliday[]>([]);
+  protected readonly newHolidayDate = signal('');
+  protected readonly newHolidayName = signal('');
+  
   ngOnInit(): void {
     this.loadUsers();
     this.loadDepartments();
     this.loadDocs();
+    this.loadSettings();
+    this.loadHolidays();
   }
-
   protected switchTab(tab: AdminTab): void {
     this.activeTab.set(tab);
   }
@@ -281,5 +307,84 @@ export class Admin implements OnInit {
         this.attendanceImportStatus.set({ type: 'error', text: err.error?.detail || 'Error' });
       },
     });
+  }
+
+    // ---------- Company settings logic ----------
+  private loadSettings(): void {
+    this.companySettingsService.getSettings().subscribe({
+      next: (data) => {
+        this.settings.set(data);
+        this.selectedWeekendDays.set(new Set(data.weekend_days));
+        this.settingsForm.patchValue({
+          work_start_time: data.work_start_time,
+          work_end_time: data.work_end_time,
+          flex_minutes: data.flex_minutes,
+          monthly_late_allowance_minutes: data.monthly_late_allowance_minutes,
+        });
+      },
+    });
+  }
+
+  protected toggleWeekendDay(day: number): void {
+    const current = new Set(this.selectedWeekendDays());
+    if (current.has(day)) {
+      current.delete(day);
+    } else {
+      current.add(day);
+    }
+    this.selectedWeekendDays.set(current);
+  }
+
+  protected saveSettings(): void {
+    this.isSavingSettings.set(true);
+    this.settingsStatus.set(null);
+    const raw = this.settingsForm.getRawValue();
+
+    this.companySettingsService
+      .updateSettings({
+        ...raw,
+        weekend_days: Array.from(this.selectedWeekendDays()),
+      })
+      .subscribe({
+        next: (data) => {
+          this.isSavingSettings.set(false);
+          this.settings.set(data);
+          this.settingsStatus.set({ type: 'success', text: this.i18n.t('settings_saved') });
+        },
+        error: (err) => {
+          this.isSavingSettings.set(false);
+          this.settingsStatus.set({ type: 'error', text: err.error?.detail || 'Error' });
+        },
+      });
+  }
+
+  // ---------- Holidays logic ----------
+  private loadHolidays(): void {
+    this.companySettingsService.listHolidays().subscribe({
+      next: (data) => this.holidays.set(data.holidays),
+    });
+  }
+
+  protected addHoliday(): void {
+    const date = this.newHolidayDate();
+    const name = this.newHolidayName().trim();
+    if (!date || !name) return;
+
+    this.companySettingsService.addHoliday({ date, name }).subscribe({
+      next: () => {
+        this.newHolidayDate.set('');
+        this.newHolidayName.set('');
+        this.loadHolidays();
+      },
+    });
+  }
+
+  protected deleteHoliday(id: number): void {
+    this.companySettingsService.deleteHoliday(id).subscribe({
+      next: () => this.loadHolidays(),
+    });
+  }
+    protected dayLabel(day: number): string {
+    return this.i18n.t(('day_' + day) as TranslationKey);
   }
 }

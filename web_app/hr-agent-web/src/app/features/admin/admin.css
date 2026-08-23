@@ -259,6 +259,63 @@
   color: var(--color-text-secondary);
   margin-top: -0.4rem;
 }
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-row-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.weekday-picker {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.weekday-btn {
+  padding: 0.5rem 0.9rem;
+  border-radius: 0.6rem;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.weekday-btn:hover {
+  border-color: var(--color-primary);
+}
+
+.weekday-selected {
+  background-color: var(--color-primary);
+  color: var(--color-primary-text);
+  border-color: var(--color-primary);
+}
+
+.holiday-add-row {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.holiday-add-row .field-input {
+  flex: 1;
+  min-width: 150px;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 640px) {
+  .form-row-3 {
+    grid-template-columns: 1fr;
+  }
+}
 /* ---------- Responsive ---------- */
 @media (max-width: 640px) {
   .admin-page {

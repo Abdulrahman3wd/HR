@@ -1,43 +1,78 @@
 <div class="team-leave-page">
-  <h2 class="page-title">{{ i18n.t('team_leave_title') }}</h2>
+  <div class="tabs">
+    <button class="tab-btn" [class.tab-active]="activeTab() === 'leave'" (click)="switchTab('leave')">
+      {{ i18n.t('team_leave_title') }}
+    </button>
+    <button class="tab-btn" [class.tab-active]="activeTab() === 'late'" (click)="switchTab('late')">
+      {{ i18n.t('team_late_title') }}
+    </button>
+  </div>
 
-  @if (requests().length === 0) {
-    <div class="empty-state">
-      <lucide-icon [img]="EmptyIcon" [size]="26" />
-      <p>{{ i18n.t('team_leave_empty') }}</p>
-    </div>
-  } @else {
-    <div class="requests-list">
-      @for (req of requests(); track req.id) {
-        <div class="request-card">
-          <div class="request-info">
-            <div class="request-employee">{{ i18n.t('team_leave_by') }}: {{ req.employee_id }}</div>
-            <div class="request-dates">{{ req.start_date }} → {{ req.end_date }} ({{ req.days_count }})</div>
-            @if (req.reason) {
-              <div class="request-reason">{{ req.reason }}</div>
-            }
-          </div>
+  @if (activeTab() === 'leave') {
+    @if (leaveRequests().length === 0) {
+      <div class="empty-state">
+        <lucide-icon [img]="EmptyIcon" [size]="26" />
+        <p>{{ i18n.t('team_leave_empty') }}</p>
+      </div>
+    } @else {
+      <div class="requests-list">
+        @for (req of leaveRequests(); track req.id) {
+          <div class="request-card">
+            <div class="request-info">
+              <div class="request-employee">{{ i18n.t('team_leave_by') }}: {{ req.employee_id }}</div>
+              <div class="request-dates">{{ req.start_date }} → {{ req.end_date }} ({{ req.days_count }})</div>
+              @if (req.reason) {
+                <div class="request-reason">{{ req.reason }}</div>
+              }
+            </div>
 
-          <div class="request-actions">
-            <button
-              class="action-btn approve-btn"
-              [disabled]="processingId() === req.id"
-              (click)="approve(req.id)"
-            >
-              <lucide-icon [img]="ApproveIcon" [size]="15" />
-              {{ i18n.t('team_leave_approve') }}
-            </button>
-            <button
-              class="action-btn reject-btn"
-              [disabled]="processingId() === req.id"
-              (click)="reject(req.id)"
-            >
-              <lucide-icon [img]="RejectIcon" [size]="15" />
-              {{ i18n.t('team_leave_reject') }}
-            </button>
+            <div class="request-actions">
+              <button class="action-btn approve-btn" [disabled]="processingId() === req.id" (click)="approveLeave(req.id)">
+                <lucide-icon [img]="ApproveIcon" [size]="15" />
+                {{ i18n.t('team_leave_approve') }}
+              </button>
+              <button class="action-btn reject-btn" [disabled]="processingId() === req.id" (click)="rejectLeave(req.id)">
+                <lucide-icon [img]="RejectIcon" [size]="15" />
+                {{ i18n.t('team_leave_reject') }}
+              </button>
+            </div>
           </div>
-        </div>
-      }
-    </div>
+        }
+      </div>
+    }
+  }
+
+  @if (activeTab() === 'late') {
+    @if (lateRequests().length === 0) {
+      <div class="empty-state">
+        <lucide-icon [img]="LateIcon" [size]="26" />
+        <p>{{ i18n.t('team_late_empty') }}</p>
+      </div>
+    } @else {
+      <div class="requests-list">
+        @for (req of lateRequests(); track req.id) {
+          <div class="request-card">
+            <div class="request-info">
+              <div class="request-employee">{{ i18n.t('team_leave_by') }}: {{ req.employee_id }}</div>
+              <div class="request-dates">{{ req.date }} — {{ req.from_time }} → {{ req.to_time }} ({{ req.minutes_count }} {{ i18n.t('late_minutes_unit') }})</div>
+              @if (req.reason) {
+                <div class="request-reason">{{ req.reason }}</div>
+              }
+            </div>
+
+            <div class="request-actions">
+              <button class="action-btn approve-btn" [disabled]="processingId() === req.id" (click)="approveLate(req.id)">
+                <lucide-icon [img]="ApproveIcon" [size]="15" />
+                {{ i18n.t('team_leave_approve') }}
+              </button>
+              <button class="action-btn reject-btn" [disabled]="processingId() === req.id" (click)="rejectLate(req.id)">
+                <lucide-icon [img]="RejectIcon" [size]="15" />
+                {{ i18n.t('team_leave_reject') }}
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    }
   }
 </div>

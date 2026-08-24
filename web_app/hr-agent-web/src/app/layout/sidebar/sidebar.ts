@@ -14,6 +14,7 @@ import {
   Users2,
   TrendingUp,
   Briefcase,
+  Clock3,
 } from 'lucide-angular';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
@@ -29,7 +30,7 @@ export class Sidebar {
   protected readonly auth = inject(AuthService);
   protected readonly i18n = inject(I18nService);
   protected readonly layout = inject(LayoutService);
-protected readonly TeamIcon = Users2;
+  protected readonly TeamIcon = Users2;
   protected readonly ChatIcon = MessageCircle;
   protected readonly LeaveIcon = CalendarDays;
   protected readonly HistoryIcon = History;
@@ -37,8 +38,9 @@ protected readonly TeamIcon = Users2;
   protected readonly DashboardIcon = LayoutDashboard;
   protected readonly AdminIcon = ShieldCheck;
   protected readonly LogoutIcon = LogOut;
-protected readonly KpiIcon = TrendingUp;
-protected readonly RecruitmentIcon = Briefcase;
+  protected readonly KpiIcon = TrendingUp;
+  protected readonly RecruitmentIcon = Briefcase;
+  protected readonly LatePermissionIcon = Clock3;
 protected readonly toggleIcon = computed(() => {
   const isRtl = this.i18n.lang() === 'ar';
   const collapsed = this.layout.isSidebarCollapsed();

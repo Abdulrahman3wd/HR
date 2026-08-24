@@ -32,6 +32,40 @@
     }
   </div>
 
+    @if (salary(); as s) {
+    <div class="account-section">
+      <h3 data-i18n="account_salary_title">{{ i18n.t('account_salary_title') }}</h3>
+      <div class="info-box">
+        <div class="info-row">
+          <span class="info-label">{{ i18n.t('account_basic_salary') }}</span>
+          <span class="info-value">{{ s.basic_salary }}</span>
+        </div>
+        @if (s.social_insurance_amount > 0) {
+          <div class="info-row">
+            <span class="info-label">{{ i18n.t('account_social_insurance') }}</span>
+            <span class="info-value deduction-value">-{{ s.social_insurance_amount }}</span>
+          </div>
+        }
+        @if (s.health_insurance_amount > 0) {
+          <div class="info-row">
+            <span class="info-label">{{ i18n.t('account_health_insurance') }}</span>
+            <span class="info-value deduction-value">-{{ s.health_insurance_amount }}</span>
+          </div>
+        }
+        @if (s.late_deduction_amount > 0) {
+          <div class="info-row">
+            <span class="info-label">{{ i18n.t('account_late_deduction') }}</span>
+            <span class="info-value deduction-value">-{{ s.late_deduction_amount }}</span>
+          </div>
+        }
+        <div class="info-row net-salary-row">
+          <span class="info-label">{{ i18n.t('account_net_salary') }}</span>
+          <span class="info-value net-salary-value">{{ s.net_salary }}</span>
+        </div>
+      </div>
+    </div>
+  }
+
   <div class="account-section">
     <h2 class="section-title">
       <lucide-icon [img]="KeyIcon" [size]="17" />

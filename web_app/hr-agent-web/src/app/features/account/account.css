@@ -125,6 +125,20 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+.deduction-value {
+  color: var(--color-danger);
+}
+
+.net-salary-row {
+  border-top: 2px solid var(--color-border);
+  padding-top: 0.9rem;
+  margin-top: 0.2rem;
+}
+
+.net-salary-value {
+  font-size: 1.1rem;
+  color: var(--color-success);
+}
 
 /* ---------- Responsive ---------- */
 @media (max-width: 480px) {

@@ -1,0 +1,95 @@
+<div class="late-page">
+  @if (usage(); as u) {
+    <div class="usage-card">
+      <div class="usage-header">
+        <lucide-icon [img]="UsageIcon" [size]="16" />
+        {{ i18n.t('late_usage_title') }}
+      </div>
+
+      <div class="usage-bar-track">
+        <div class="usage-bar-fill" [style.width.%]="usagePercentage()"></div>
+      </div>
+
+      <div class="usage-stats">
+        <div class="usage-stat">
+          <span class="usage-stat-value">{{ u.used_minutes }}</span>
+          <span class="usage-stat-label">{{ i18n.t('late_usage_used') }}</span>
+        </div>
+        <div class="usage-stat">
+          <span class="usage-stat-value">{{ u.allowance_minutes }}</span>
+          <span class="usage-stat-label">{{ i18n.t('late_usage_allowance') }}</span>
+        </div>
+        @if (u.excess_minutes > 0) {
+          <div class="usage-stat usage-stat-danger">
+            <span class="usage-stat-value">{{ u.excess_minutes }}</span>
+            <span class="usage-stat-label">{{ i18n.t('late_usage_excess') }}</span>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <div class="form-card">
+    <h3 class="card-title">
+      <lucide-icon [img]="ClockIcon" [size]="16" />
+      {{ i18n.t('late_new_request') }}
+    </h3>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="late-form">
+      <div class="form-field">
+        <label class="field-label">{{ i18n.t('late_date') }}</label>
+        <input type="date" formControlName="date" class="field-input" />
+      </div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label class="field-label">{{ i18n.t('late_from_time') }}</label>
+          <input type="time" formControlName="from_time" class="field-input" />
+        </div>
+        <div class="form-field">
+          <label class="field-label">{{ i18n.t('late_to_time') }}</label>
+          <input type="time" formControlName="to_time" class="field-input" />
+        </div>
+      </div>
+
+      <input formControlName="reason" [placeholder]="i18n.t('late_reason')" class="field-input" />
+
+      @if (statusMessage()) {
+        <div
+          class="status-msg"
+          [class.status-success]="statusMessage()!.type === 'success'"
+          [class.status-error]="statusMessage()!.type === 'error'"
+        >
+          {{ statusMessage()!.text }}
+        </div>
+      }
+
+      <button type="submit" class="save-btn" [disabled]="isSubmitting()">
+        {{ i18n.t('late_submit') }}
+      </button>
+    </form>
+  </div>
+
+  <div class="form-card">
+    <h3 class="card-title">{{ i18n.t('late_my_requests') }}</h3>
+
+    @if (requests().length === 0) {
+      <p class="empty-text">{{ i18n.t('late_no_requests') }}</p>
+    } @else {
+      <div class="requests-list">
+        @for (req of requests(); track req.id) {
+          <div class="request-card">
+            <div class="request-header">
+              <span>{{ req.date }} — {{ req.from_time }} → {{ req.to_time }}</span>
+              <span class="leave-status leave-status-{{ req.status }}">{{ statusLabel(req.status) }}</span>
+            </div>
+            <div class="request-meta">{{ req.minutes_count }} {{ i18n.t('late_minutes_unit') }}</div>
+            @if (req.reason) {
+              <div class="request-meta">{{ req.reason }}</div>
+            }
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>

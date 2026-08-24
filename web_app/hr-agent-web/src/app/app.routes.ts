@@ -50,6 +50,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/recruitment/recruitment').then((m) => m.Recruitment),
       },
       {
+        path: 'late-permission',
+        loadComponent: () => import('./features/late-permission/late-permission').then((m) => m.LatePermission),
+      },
+      {
         path: 'admin',
         canActivate: [adminGuard],
         loadComponent: () => import('./features/admin/admin').then((m) => m.Admin),

@@ -33,6 +33,10 @@
       <lucide-icon [img]="LeaveIcon" [size]="19" />
       @if (!layout.isSidebarCollapsed()) { <span>{{ i18n.t('nav_leave') }}</span> }
     </a>
+    <a routerLink="/late-permission" routerLinkActive="active" class="nav-item" (click)="onNavItemClick()">
+  <lucide-icon [img]="LatePermissionIcon" [size]="19" />
+  @if (!layout.isSidebarCollapsed()) { <span>{{ i18n.t('nav_late_permission') }}</span> }
+</a>
     <a routerLink="/team-leave" routerLinkActive="active" class="nav-item" (click)="onNavItemClick()">
   <lucide-icon [img]="TeamIcon" [size]="19" />
   @if (!layout.isSidebarCollapsed()) { <span>{{ i18n.t('nav_team_leave') }}</span> }

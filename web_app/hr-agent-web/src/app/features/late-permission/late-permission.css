@@ -1,0 +1,240 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.late-page {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.usage-card {
+  background-color: var(--color-primary-subtle);
+  border-radius: 1rem;
+  padding: 1.25rem;
+}
+
+.usage-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 0.75rem;
+}
+
+.usage-bar-track {
+  background-color: var(--color-bg-surface);
+  border-radius: 9999px;
+  height: 8px;
+  overflow: hidden;
+  margin-bottom: 0.9rem;
+}
+
+.usage-bar-fill {
+  background-color: var(--color-primary);
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.4s ease;
+}
+
+.usage-stats {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.usage-stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.usage-stat-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.usage-stat-label {
+  font-size: 0.7rem;
+  color: var(--color-text-secondary);
+}
+
+.usage-stat-danger .usage-stat-value {
+  color: var(--color-danger);
+}
+
+.form-card {
+  background-color: var(--color-bg-base);
+  border: 1px solid var(--color-border);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.late-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.field-label {
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.field-input {
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.6rem;
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  font-size: 0.83rem;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.field-input:focus {
+  border-color: var(--color-primary);
+}
+
+.status-msg {
+  font-size: 0.78rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.5rem;
+}
+
+.status-success {
+  background-color: color-mix(in srgb, var(--color-success) 12%, transparent);
+  color: var(--color-success);
+}
+
+.status-error {
+  background-color: color-mix(in srgb, var(--color-danger) 12%, transparent);
+  color: var(--color-danger);
+}
+
+.save-btn {
+  align-self: flex-start;
+  padding: 0.65rem 1.4rem;
+  background-color: var(--color-primary);
+  color: var(--color-primary-text);
+  border: none;
+  border-radius: 0.6rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.save-btn:hover:not(:disabled) {
+  background-color: var(--color-primary-hover);
+}
+
+.save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.empty-text {
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+}
+
+.requests-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.request-card {
+  background-color: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  padding: 0.8rem 1rem;
+}
+
+.request-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.request-meta {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  margin-top: 0.3rem;
+}
+
+/* Reuses .leave-status-* classes defined globally in leave.css's pattern;
+   redefine locally in case leave.css isn't loaded on this route */
+.leave-status {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.leave-status-pending {
+  background-color: color-mix(in srgb, var(--color-warning) 15%, transparent);
+  color: color-mix(in srgb, var(--color-warning) 70%, black);
+}
+
+.leave-status-approved {
+  background-color: color-mix(in srgb, var(--color-success) 15%, transparent);
+  color: var(--color-success);
+}
+
+.leave-status-rejected {
+  background-color: color-mix(in srgb, var(--color-danger) 15%, transparent);
+  color: var(--color-danger);
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 480px) {
+  .late-page {
+    padding: 1rem;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .usage-stats {
+    gap: 1rem;
+  }
+}

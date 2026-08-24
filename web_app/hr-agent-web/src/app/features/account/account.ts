@@ -4,9 +4,11 @@ import { LucideAngularModule, KeyRound } from 'lucide-angular';
 
 import { AccountService } from '../../core/services/account.service';
 import { DepartmentService } from '../../core/services/department.service';
+import { PayrollService } from '../../core/services/payroll.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { CurrentUserProfile } from '../../core/models/account.model';
 import { Department } from '../../core/models/department.model';
+import { NetSalary } from '../../core/models/payroll.model';
 
 function passwordsMatchValidator(control: AbstractControl): ValidationErrors | null {
   const newPassword = control.get('new_password')?.value;
@@ -24,9 +26,11 @@ export class Account implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly accountService = inject(AccountService);
   private readonly departmentService = inject(DepartmentService);
+  private readonly payrollService = inject(PayrollService);
   protected readonly i18n = inject(I18nService);
 
   protected readonly departments = signal<Department[]>([]);
+  protected readonly salary = signal<NetSalary | null>(null);
   protected readonly KeyIcon = KeyRound;
 
   protected readonly profile = signal<CurrentUserProfile | null>(null);
@@ -49,7 +53,12 @@ export class Account implements OnInit {
 
     this.departmentService.list().subscribe({
       next: (data) => this.departments.set(data.departments),
-      error: () => this.departments.set([]), // employees may not have permission; fail silently
+      error: () => this.departments.set([]),
+    });
+
+    this.payrollService.getMySalary().subscribe({
+      next: (data) => this.salary.set(data),
+      error: () => this.salary.set(null),
     });
   }
 protected roleLabel(role: 'admin' | 'hr' | 'employee'): string {

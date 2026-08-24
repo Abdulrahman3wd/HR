@@ -26,8 +26,28 @@ def read_docx(path: Path) -> str:
     doc = Document(str(path))
     return "\n".join(p.text for p in doc.paragraphs if p.text.strip())
 
-
 def read_pdf(path: Path) -> str:
+    """
+    Uses pdfplumber for layout-aware extraction (handles multi-column
+    resumes/CVs much better than raw pypdf). Falls back to pypdf if
+    pdfplumber fails for any reason (corrupted file, unusual encoding).
+    """
+    try:
+        import pdfplumber
+        text_parts = []
+        with pdfplumber.open(str(path)) as pdf:
+            for page in pdf.pages:
+                # x_tolerance/y_tolerance tuned for better column separation
+                page_text = page.extract_text(x_tolerance=2, y_tolerance=3)
+                if page_text:
+                    text_parts.append(page_text)
+        text = "\n\n".join(text_parts)
+        if text.strip():
+            return text
+    except Exception:
+        pass
+
+    # Fallback: original pypdf method
     from pypdf import PdfReader
     reader = PdfReader(str(path))
     return "\n".join(page.extract_text() or "" for page in reader.pages)

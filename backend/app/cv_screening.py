@@ -1,10 +1,10 @@
 """
 cv_screening.py
 ================
-AI-powered CV screening: extracts text from an uploaded CV file (reusing
-the same readers as ingestion.py) and asks the local LLM to compare it
-against a job's requirements, returning a structured match score and
-skill breakdown.
+AI-powered CV screening: extracts text from an uploaded CV file using
+layout-aware extraction (see ingestion.py's read_pdf), then asks the
+local LLM to compare it against a job's requirements with a structured,
+step-by-step matching prompt for higher accuracy.
 """
 
 import json
@@ -14,6 +14,12 @@ from pathlib import Path
 import ollama
 from app.config import OLLAMA_MODEL
 from app.ingestion import read_txt, read_docx, read_pdf
+
+# Below this character count, we assume the PDF was likely scanned
+# (image-based) rather than containing real extractable text.
+MIN_VALID_CV_TEXT_LENGTH = 150
+
+MAX_CV_CHARS_FOR_LLM = 10000
 
 
 def extract_cv_text(file_path: Path) -> str:
@@ -28,39 +34,85 @@ def extract_cv_text(file_path: Path) -> str:
         raise ValueError(f"Unsupported CV file type: {ext}")
 
 
-SCREENING_PROMPT = """أنت مساعد متخصص في تحليل السير الذاتية (CVs) ومقارنتها بمتطلبات الوظائف.
+def is_extraction_reliable(cv_text: str) -> bool:
+    """
+    Heuristic check: if extracted text is too short, the source file was
+    likely a scanned image rather than real text, and any AI score
+    computed from it would be misleading.
+    """
+    return len(cv_text.strip()) >= MIN_VALID_CV_TEXT_LENGTH
 
-متطلبات الوظيفة:
+
+SCREENING_PROMPT = """أنت خبير توظيف متخصص في تحليل السير الذاتية التقنية ومقارنتها بمتطلبات الوظائف بدقة عالية.
+
+# متطلبات الوظيفة
 {requirements}
 
-نص السيرة الذاتية للمرشح:
+# نص السيرة الذاتية للمرشح
 {cv_text}
 
-قارن السيرة الذاتية بمتطلبات الوظيفة، وأجب حصريًا بصيغة JSON صحيحة وبدون أي نص إضافي قبلها أو بعدها، بالشكل التالي بالضبط:
+# التعليمات
+حلل السيرة الذاتية خطوة بخطوة بالمنهجية التالية قبل إعطاء الإجابة النهائية:
+
+1. استخرج كل المهارات والتقنيات المذكورة صراحة في السيرة الذاتية (من أي قسم: Skills، الخبرات العملية، المشاريع، الدورات).
+2. لكل مهارة مطلوبة في متطلبات الوظيفة، تحقق من وجودها في قائمة مهارات المرشح مع مراعاة:
+   - المرادفات والاختصارات الشائعة (مثال: "JS" تعني "JavaScript"، ".NET Core" تعادل "ASP.NET Core")
+   - التقنيات ذات الصلة القوية التي تدل ضمنيًا على الخبرة (مثال: خبرة عملية موثقة بـ "Entity Framework Core" تدعم مهارة "ORM")
+   - لا تعتبر مهارة "موجودة" إذا كانت مجرد ذكر عابر لكلمة مشابهة بدون سياق واضح يدعمها
+3. لا تخترع أي مهارة غير مذكورة فعليًا أو مستنتجة بوضوح من السياق.
+4. احسب نسبة التطابق (match_score) بناءً على: (عدد المهارات المطلوبة الموجودة فعليًا ÷ إجمالي عدد المهارات المطلوبة) × 100، مع تعديل بسيط حسب سنوات الخبرة ذات الصلة الظاهرة في السيرة الذاتية.
+
+# صيغة الإجابة
+أجب حصريًا بصيغة JSON صحيحة وبدون أي نص أو شرح قبلها أو بعدها، بالشكل التالي بالضبط:
 
 {{
-  "match_score": <رقم صحيح من 0 إلى 100 يمثل نسبة التطابق>,
-  "matched_skills": [<قائمة بالمهارات المطلوبة والموجودة فعليًا في السيرة الذاتية>],
-  "missing_skills": [<قائمة بالمهارات المطلوبة وغير الموجودة في السيرة الذاتية>]
+  "match_score": <رقم صحيح من 0 إلى 100>,
+  "matched_skills": [<قائمة بأسماء المهارات المطلوبة الموجودة فعليًا في السيرة الذاتية، بصيغتها كما وردت في متطلبات الوظيفة>],
+  "missing_skills": [<قائمة بأسماء المهارات المطلوبة وغير الموجودة>]
 }}
 """
 
 
 def _extract_json(text: str) -> dict:
-    """LLMs sometimes wrap JSON in markdown fences or add stray text; this
-    pulls out the first {...} block and parses it defensively."""
-    match = re.search(r"\{.*\}", text, re.DOTALL)
+    """LLMs sometimes wrap JSON in markdown fences or add stray text before/after;
+    this pulls out the first {...} block and parses it defensively."""
+    cleaned = re.sub(r"```(?:json)?", "", text)
+    match = re.search(r"\{.*\}", cleaned, re.DOTALL)
     if not match:
         raise ValueError("Model did not return valid JSON")
     return json.loads(match.group(0))
 
 
 def screen_cv(cv_text: str, job_requirements: str) -> dict:
-    prompt = SCREENING_PROMPT.format(requirements=job_requirements, cv_text=cv_text[:6000])
+    """
+    Returns:
+        {
+            "match_score": int,
+            "matched_skills": list[str],
+            "missing_skills": list[str],
+            "extraction_reliable": bool,   # False => likely a scanned PDF
+        }
+    """
+    extraction_reliable = is_extraction_reliable(cv_text)
+
+    if not extraction_reliable:
+        # Don't waste an LLM call on near-empty text; be explicit about the issue
+        return {
+            "match_score": 0,
+            "matched_skills": [],
+            "missing_skills": [],
+            "extraction_reliable": False,
+        }
+
+    prompt = SCREENING_PROMPT.format(
+        requirements=job_requirements,
+        cv_text=cv_text[:MAX_CV_CHARS_FOR_LLM],
+    )
 
     response = ollama.chat(
         model=OLLAMA_MODEL,
         messages=[{"role": "user", "content": prompt}],
+        options={"temperature": 0.1},  # lower temperature = more consistent scoring
     )
 
     raw_content = response["message"]["content"]
@@ -71,8 +123,6 @@ def screen_cv(cv_text: str, job_requirements: str) -> dict:
         matched_skills = list(parsed.get("matched_skills", []))
         missing_skills = list(parsed.get("missing_skills", []))
     except (ValueError, TypeError, KeyError):
-        # Fail gracefully: screening is a helpful feature, not a hard
-        # requirement — a candidate can still be added without a score.
         match_score = 0
         matched_skills = []
         missing_skills = []
@@ -83,4 +133,5 @@ def screen_cv(cv_text: str, job_requirements: str) -> dict:
         "match_score": match_score,
         "matched_skills": matched_skills,
         "missing_skills": missing_skills,
+        "extraction_reliable": True,
     }

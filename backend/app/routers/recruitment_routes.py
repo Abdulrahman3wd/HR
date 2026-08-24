@@ -117,9 +117,9 @@ async def add_candidate(
             match_score = screening_result["match_score"]
             matched_skills = screening_result["matched_skills"]
             missing_skills = screening_result["missing_skills"]
+            if not screening_result["extraction_reliable"]:
+                missing_skills = ["⚠ تعذر قراءة نص الملف بشكل موثوق (قد يكون صورة ممسوحة ضوئيًا)"]
         except Exception:
-            # If extraction/screening fails, the candidate is still added
-            # without a score rather than blocking the whole submission.
             pass
 
     return database.create_candidate(

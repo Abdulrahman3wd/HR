@@ -8,8 +8,8 @@ import {
   Candidate,
   CandidateListResponse,
   CandidateStage,
+  CandidateInfoUpdate,
 } from '../models/recruitment.model';
-
 @Injectable({ providedIn: 'root' })
 export class RecruitmentService {
   private readonly http = inject(HttpClient);
@@ -62,5 +62,12 @@ export class RecruitmentService {
 
   updateNotes(candidateId: number, notes: string) {
     return this.http.put<Candidate>(`${this.base}/recruitment/candidates/${candidateId}/notes`, { notes });
+  }
+  updateCandidateInfo(candidateId: number, updates: CandidateInfoUpdate) {
+    return this.http.put<Candidate>(`${this.base}/recruitment/candidates/${candidateId}`, updates);
+  }
+
+  deleteCandidate(candidateId: number) {
+    return this.http.delete<{ message: string }>(`${this.base}/recruitment/candidates/${candidateId}`);
   }
 }

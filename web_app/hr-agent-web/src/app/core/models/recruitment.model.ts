@@ -49,3 +49,9 @@ export interface Candidate {
 export interface CandidateListResponse {
   candidates: Candidate[];
 }
+
+export interface CandidateInfoUpdate {
+  full_name?: string;
+  email?: string;
+  phone?: string;
+}

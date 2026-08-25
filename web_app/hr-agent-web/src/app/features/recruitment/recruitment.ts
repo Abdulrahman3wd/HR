@@ -1,6 +1,6 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { ReactiveFormsModule, FormsModule, FormBuilder, Validators } from '@angular/forms';
-import { LucideAngularModule, Briefcase, Users, Plus, X, Upload } from 'lucide-angular';
+import { LucideAngularModule, Briefcase, Users, Plus, X, Upload, FileText, Pencil, Trash2, Check } from 'lucide-angular';
 import { DragDropModule, CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { TranslationKey } from '../../core/services/translations';
 import { RecruitmentService } from '../../core/services/recruitment.service';
@@ -34,7 +34,10 @@ export class Recruitment implements OnInit {
   protected readonly PlusIcon = Plus;
   protected readonly CloseIcon = X;
   protected readonly UploadIcon = Upload;
-
+  protected readonly FileIcon = FileText;
+  protected readonly EditIcon = Pencil;
+  protected readonly DeleteIcon = Trash2;
+  protected readonly SaveIcon = Check;
   protected readonly activeTab = signal<RecruitmentTab>('jobs');
   protected readonly stages = PIPELINE_STAGES;
 
@@ -57,6 +60,14 @@ export class Recruitment implements OnInit {
   protected readonly candidateStatus = signal<{ type: 'success' | 'error'; text: string } | null>(null);
   protected readonly isAddingCandidate = signal(false);
   protected readonly selectedCvFile = signal<File | null>(null);
+    protected readonly editingCandidateId = signal<number | null>(null);
+  protected readonly cvValidationError = signal<string | null>(null);
+
+  protected readonly editForm = this.fb.nonNullable.group({
+    full_name: ['', Validators.required],
+    email: [''],
+    phone: [''],
+  });
   protected readonly expandedCandidateId = signal<number | null>(null);
 
   protected readonly candidateForm = this.fb.nonNullable.group({
@@ -155,13 +166,33 @@ export class Recruitment implements OnInit {
 
   protected onCvFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
-    this.selectedCvFile.set(input.files?.[0] ?? null);
-  }
+    const file = input.files?.[0] ?? null;
 
+    if (file) {
+      const allowedExtensions = ['.pdf', '.docx', '.txt'];
+      const fileName = file.name.toLowerCase();
+      const isValid = allowedExtensions.some((ext) => fileName.endsWith(ext));
+
+      if (!isValid) {
+        this.cvValidationError.set('يجب أن يكون الملف بصيغة PDF أو DOCX أو TXT');
+        this.selectedCvFile.set(null);
+        input.value = '';
+        return;
+      }
+    }
+
+    this.cvValidationError.set(null);
+    this.selectedCvFile.set(file);
+  }
   protected addCandidate(): void {
     const jobId = this.selectedJobId();
     if (!jobId || this.candidateForm.invalid) {
       this.candidateForm.markAllAsTouched();
+      return;
+    }
+
+    if (!this.selectedCvFile()) {
+      this.cvValidationError.set('يجب رفع السيرة الذاتية (CV) قبل إضافة المتقدم');
       return;
     }
 
@@ -229,6 +260,54 @@ export class Recruitment implements OnInit {
       error: () => {
         // Revert on failure by reloading the authoritative state from the server
         this.loadCandidates();
+      },
+    });
+  }
+    protected startEditCandidate(candidate: Candidate, event: Event): void {
+    event.stopPropagation();
+    this.editingCandidateId.set(candidate.id);
+    this.editForm.patchValue({
+      full_name: candidate.full_name,
+      email: candidate.email || '',
+      phone: candidate.phone || '',
+    });
+  }
+
+  protected cancelEditCandidate(event: Event): void {
+    event.stopPropagation();
+    this.editingCandidateId.set(null);
+  }
+
+  protected saveEditCandidate(candidateId: number, event: Event): void {
+    event.stopPropagation();
+    if (this.editForm.invalid) {
+      this.editForm.markAllAsTouched();
+      return;
+    }
+
+    const raw = this.editForm.getRawValue();
+
+    this.recruitmentService
+      .updateCandidateInfo(candidateId, {
+        full_name: raw.full_name,
+        email: raw.email || undefined,
+        phone: raw.phone || undefined,
+      })
+      .subscribe({
+        next: (updated) => {
+          this.candidates.update((list) => list.map((c) => (c.id === updated.id ? updated : c)));
+          this.editingCandidateId.set(null);
+        },
+      });
+  }
+
+  protected deleteCandidate(candidateId: number, event: Event): void {
+    event.stopPropagation();
+    if (!confirm('هل أنت متأكد من حذف هذا المتقدم؟')) return;
+
+    this.recruitmentService.deleteCandidate(candidateId).subscribe({
+      next: () => {
+        this.candidates.update((list) => list.filter((c) => c.id !== candidateId));
       },
     });
   }

@@ -108,13 +108,28 @@
             <input formControlName="email" [placeholder]="i18n.t('recruitment_candidate_email')" class="field-input" />
             <input formControlName="phone" [placeholder]="i18n.t('recruitment_candidate_phone')" class="field-input" />
 
-            <div class="cv-upload-row">
-              <input type="file" (change)="onCvFileSelected($event)" accept=".pdf,.docx,.txt" class="file-input" />
-              <span class="cv-hint">
-                <lucide-icon [img]="UploadIcon" [size]="13" />
-                {{ i18n.t('recruitment_screening_hint') }}
-              </span>
+            <div class="cv-upload-box">
+              <input
+                type="file"
+                id="cvFileInput"
+                (change)="onCvFileSelected($event)"
+                accept=".pdf,.docx,.txt"
+                class="cv-file-input-hidden"
+              />
+              <label for="cvFileInput" class="cv-upload-label">
+                <lucide-icon [img]="selectedCvFile() ? FileIcon : UploadIcon" [size]="18" />
+                @if (selectedCvFile()) {
+                  <span class="cv-file-name">{{ selectedCvFile()!.name }}</span>
+                } @else {
+                  <span>{{ i18n.t('recruitment_cv_upload') }}</span>
+                }
+              </label>
+              <span class="cv-hint">{{ i18n.t('recruitment_screening_hint') }}</span>
             </div>
+
+            @if (cvValidationError()) {
+              <div class="status-msg status-error">{{ cvValidationError() }}</div>
+            }
 
             @if (candidateStatus()) {
               <div class="status-msg status-error">{{ candidateStatus()!.text }}</div>
@@ -144,58 +159,82 @@
         [cdkDropListConnectedTo]="connectedDropLists()"
         (cdkDropListDropped)="onDrop($event, stage)"
       >
-        @for (candidate of candidatesInStage(stage); track candidate.id) {
-          <div class="candidate-card" cdkDrag (click)="toggleExpand(candidate.id)">
-                    <div class="candidate-card-header">
-                      <span class="candidate-name">{{ candidate.full_name }}</span>
-                      @if (candidate.match_score !== null) {
-                        <span class="match-badge" [class]="scoreColorClass(candidate.match_score)">
-                          {{ candidate.match_score }}%
-                        </span>
-                      }
-                    </div>
-
-                    @if (expandedCandidateId() === candidate.id) {
-                      <div class="candidate-details" (click)="$event.stopPropagation()">
-                        @if (candidate.email) {
-                          <div class="detail-row">{{ candidate.email }}</div>
-                        }
-                        @if (candidate.phone) {
-                          <div class="detail-row">{{ candidate.phone }}</div>
-                        }
-
-                        @if (candidate.matched_skills.length > 0) {
-                          <div class="skills-block">
-                            <span class="skills-label skills-good">{{ i18n.t('recruitment_matched_skills') }}</span>
-                            <div class="skills-tags">
-                              @for (skill of candidate.matched_skills; track skill) {
-                                <span class="skill-tag tag-good">✔ {{ skill }}</span>
-                              }
-                            </div>
-                          </div>
-                        }
-
-                        @if (candidate.missing_skills.length > 0) {
-                          <div class="skills-block">
-                            <span class="skills-label skills-bad">{{ i18n.t('recruitment_missing_skills') }}</span>
-                            <div class="skills-tags">
-                              @for (skill of candidate.missing_skills; track skill) {
-                                <span class="skill-tag tag-bad">✖ {{ skill }}</span>
-                              }
-                            </div>
-                          </div>
-                        }
-
-                        <select
-                          class="stage-select"
-                          [ngModel]="candidate.stage"
-                          (ngModelChange)="moveToStage(candidate.id, $event)"
-                        >
-                          @for (s of stages; track s) {
-                           <option [value]="s">{{ stageLabel(s) }}</option>
+                @for (candidate of candidatesInStage(stage); track candidate.id) {
+                  <div class="candidate-card" cdkDrag (click)="toggleExpand(candidate.id)">
+                    @if (editingCandidateId() === candidate.id) {
+                      <form [formGroup]="editForm" class="candidate-edit-form" (click)="$event.stopPropagation()">
+                        <input formControlName="full_name" class="edit-input" placeholder="الاسم" />
+                        <input formControlName="email" class="edit-input" placeholder="البريد الإلكتروني" />
+                        <input formControlName="phone" class="edit-input" placeholder="الهاتف" />
+                        <div class="edit-actions">
+                          <button type="button" class="icon-btn-sm icon-save" (click)="saveEditCandidate(candidate.id, $event)">
+                            <lucide-icon [img]="SaveIcon" [size]="13" />
+                          </button>
+                          <button type="button" class="icon-btn-sm icon-cancel" (click)="cancelEditCandidate($event)">
+                            <lucide-icon [img]="CloseIcon" [size]="13" />
+                          </button>
+                        </div>
+                      </form>
+                    } @else {
+                      <div class="candidate-card-header">
+                        <span class="candidate-name">{{ candidate.full_name }}</span>
+                        <div class="candidate-header-actions">
+                          @if (candidate.match_score !== null) {
+                            <span class="match-badge" [class]="scoreColorClass(candidate.match_score)">
+                              {{ candidate.match_score }}%
+                            </span>
                           }
-                        </select>
+                          <button class="icon-btn-sm" (click)="startEditCandidate(candidate, $event)">
+                            <lucide-icon [img]="EditIcon" [size]="12" />
+                          </button>
+                          <button class="icon-btn-sm icon-danger" (click)="deleteCandidate(candidate.id, $event)">
+                            <lucide-icon [img]="DeleteIcon" [size]="12" />
+                          </button>
+                        </div>
                       </div>
+
+                      @if (expandedCandidateId() === candidate.id) {
+                        <div class="candidate-details" (click)="$event.stopPropagation()">
+                          @if (candidate.email) {
+                            <div class="detail-row">{{ candidate.email }}</div>
+                          }
+                          @if (candidate.phone) {
+                            <div class="detail-row">{{ candidate.phone }}</div>
+                          }
+
+                          @if (candidate.matched_skills.length > 0) {
+                            <div class="skills-block">
+                              <span class="skills-label skills-good">{{ i18n.t('recruitment_matched_skills') }}</span>
+                              <div class="skills-tags">
+                                @for (skill of candidate.matched_skills; track skill) {
+                                  <span class="skill-tag tag-good">✔ {{ skill }}</span>
+                                }
+                              </div>
+                            </div>
+                          }
+
+                          @if (candidate.missing_skills.length > 0) {
+                            <div class="skills-block">
+                              <span class="skills-label skills-bad">{{ i18n.t('recruitment_missing_skills') }}</span>
+                              <div class="skills-tags">
+                                @for (skill of candidate.missing_skills; track skill) {
+                                  <span class="skill-tag tag-bad">✖ {{ skill }}</span>
+                                }
+                              </div>
+                            </div>
+                          }
+
+                          <select
+                            class="stage-select"
+                            [ngModel]="candidate.stage"
+                            (ngModelChange)="moveToStage(candidate.id, $event)"
+                          >
+                            @for (s of stages; track s) {
+                              <option [value]="s">{{ stageLabel(s) }}</option>
+                            }
+                          </select>
+                        </div>
+                      }
                     }
                   </div>
                 }

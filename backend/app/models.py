@@ -329,7 +329,11 @@ class CandidateStageUpdate(BaseModel):
 
 class CandidateNotesUpdate(BaseModel):
     notes: str
-
+    
+class CandidateInfoUpdate(BaseModel):
+    full_name: str | None = None
+    email: str | None = None
+    phone: str | None = None
 # ---------- Company Settings ----------
 class CompanySettingsResponse(BaseModel):
     company_id: int
@@ -400,7 +404,7 @@ class MonthlyLateUsageResponse(BaseModel):
     from_permissions_minutes: int
     from_attendance_minutes: int
 
-    
+
 # ---------- Payroll ----------
 class NetSalaryResponse(BaseModel):
     employee_id: str

@@ -1,6 +1,7 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { ReactiveFormsModule, FormsModule, FormBuilder, Validators } from '@angular/forms';
 import { LucideAngularModule, Briefcase, Users, Plus, X, Upload } from 'lucide-angular';
+import { DragDropModule, CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { TranslationKey } from '../../core/services/translations';
 import { RecruitmentService } from '../../core/services/recruitment.service';
 import { I18nService } from '../../core/services/i18n.service';
@@ -19,7 +20,7 @@ const PIPELINE_STAGES: CandidateStage[] = [
 
 @Component({
   selector: 'app-recruitment',
-  imports: [ReactiveFormsModule, FormsModule, LucideAngularModule],
+  imports: [ReactiveFormsModule, FormsModule, LucideAngularModule, DragDropModule],
   templateUrl: './recruitment.html',
   styleUrl: './recruitment.css',
 })
@@ -130,10 +131,24 @@ export class Recruitment implements OnInit {
     });
   }
 
+  protected readonly groupedByStage = computed(() => {
+    const groups = new Map<CandidateStage, Candidate[]>();
+    for (const stage of PIPELINE_STAGES) {
+      groups.set(stage, []);
+    }
+    for (const candidate of this.candidates()) {
+      groups.get(candidate.stage)?.push(candidate);
+    }
+    return groups;
+  });
+
   protected candidatesInStage(stage: CandidateStage): Candidate[] {
-    return this.candidates().filter((c) => c.stage === stage);
+    return this.groupedByStage().get(stage) ?? [];
   }
 
+  protected connectedDropLists(): string[] {
+    return this.stages.map((s) => 'stage-' + s);
+  }
   protected toggleCandidateForm(): void {
     this.showCandidateForm.update((v) => !v);
   }
@@ -191,5 +206,30 @@ export class Recruitment implements OnInit {
   }
     protected stageLabel(stage: CandidateStage): string {
     return this.i18n.t(('stage_' + stage) as TranslationKey);
+  }
+    protected onDrop(event: CdkDragDrop<Candidate[]>, targetStage: CandidateStage): void {
+    if (event.previousContainer === event.container) {
+      return; // dropped in the same column, no stage change
+    }
+
+    const candidate = event.previousContainer.data[event.previousIndex];
+
+    // Optimistic UI update: move the card immediately, then confirm with the server
+    transferArrayItem(
+      event.previousContainer.data,
+      event.container.data,
+      event.previousIndex,
+      event.currentIndex
+    );
+
+    this.recruitmentService.updateStage(candidate.id, targetStage).subscribe({
+      next: (updated) => {
+        this.candidates.update((list) => list.map((c) => (c.id === updated.id ? updated : c)));
+      },
+      error: () => {
+        // Revert on failure by reloading the authoritative state from the server
+        this.loadCandidates();
+      },
+    });
   }
 }

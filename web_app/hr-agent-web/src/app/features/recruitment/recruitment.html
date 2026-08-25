@@ -128,17 +128,24 @@
       }
 
       @if (selectedJobId()) {
-        <div class="kanban-board">
-          @for (stage of stages; track stage) {
-            <div class="kanban-column">
-              <div class="kanban-column-header">
-                {{ stageLabel(stage) }}
-                <span class="kanban-count">{{ candidatesInStage(stage).length }}</span>
-              </div>
+<div class="kanban-board">
+  @for (stage of stages; track stage) {
+    <div class="kanban-column">
+      <div class="kanban-column-header">
+        {{ stageLabel(stage) }}
+        <span class="kanban-count">{{ candidatesInStage(stage).length }}</span>
+      </div>
 
-              <div class="kanban-cards">
-                @for (candidate of candidatesInStage(stage); track candidate.id) {
-                  <div class="candidate-card" (click)="toggleExpand(candidate.id)">
+      <div
+        class="kanban-cards"
+        cdkDropList
+        [id]="'stage-' + stage"
+        [cdkDropListData]="candidatesInStage(stage)"
+        [cdkDropListConnectedTo]="connectedDropLists()"
+        (cdkDropListDropped)="onDrop($event, stage)"
+      >
+        @for (candidate of candidatesInStage(stage); track candidate.id) {
+          <div class="candidate-card" cdkDrag (click)="toggleExpand(candidate.id)">
                     <div class="candidate-card-header">
                       <span class="candidate-name">{{ candidate.full_name }}</span>
                       @if (candidate.match_score !== null) {

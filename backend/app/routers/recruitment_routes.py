@@ -23,6 +23,7 @@ from app.models import (
     CandidateListResponse,
     CandidateStageUpdate,
     CandidateNotesUpdate,
+    CandidateInfoUpdate,
 )
 from app import database
 from app.cv_screening import extract_cv_text, screen_cv
@@ -160,3 +161,24 @@ def update_notes(candidate_id: int, request: CandidateNotesUpdate, current_user:
     if not updated:
         raise HTTPException(status_code=404, detail="Candidate not found")
     return updated
+
+@router.put("/candidates/{candidate_id}", response_model=CandidateRecord)
+def update_candidate(candidate_id: int, request: CandidateInfoUpdate, current_user: dict = Depends(require_hr_or_admin)):
+    updated = database.update_candidate_info(
+        candidate_id,
+        current_user["company_id"],
+        full_name=request.full_name,
+        email=request.email,
+        phone=request.phone,
+    )
+    if not updated:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+    return updated
+
+
+@router.delete("/candidates/{candidate_id}")
+def remove_candidate(candidate_id: int, current_user: dict = Depends(require_hr_or_admin)):
+    deleted = database.delete_candidate(candidate_id, current_user["company_id"])
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+    return {"message": "Candidate deleted successfully"}

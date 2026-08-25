@@ -929,6 +929,51 @@ def update_candidate_notes(candidate_id: int, company_id: int, notes: str) -> di
     conn.close()
     return get_candidate_by_id(candidate_id, company_id)
 
+
+def update_candidate_info(
+    candidate_id: int,
+    company_id: int,
+    full_name: str | None = None,
+    email: str | None = None,
+    phone: str | None = None,
+) -> dict | None:
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT 1 FROM candidates WHERE id = ? AND company_id = ?", (candidate_id, company_id))
+    if not cursor.fetchone():
+        conn.close()
+        return None
+
+    updates = {}
+    if full_name is not None:
+        updates["full_name"] = full_name
+    if email is not None:
+        updates["email"] = email
+    if phone is not None:
+        updates["phone"] = phone
+
+    if updates:
+        set_clause = ", ".join(f"{k} = ?" for k in updates)
+        values = list(updates.values()) + [candidate_id, company_id]
+        cursor.execute(f"UPDATE candidates SET {set_clause} WHERE id = ? AND company_id = ?", values)
+        conn.commit()
+
+    conn.close()
+    return get_candidate_by_id(candidate_id, company_id)
+
+
+def delete_candidate(candidate_id: int, company_id: int) -> bool:
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT 1 FROM candidates WHERE id = ? AND company_id = ?", (candidate_id, company_id))
+    if not cursor.fetchone():
+        conn.close()
+        return False
+
+    cursor.execute("DELETE FROM candidates WHERE id = ? AND company_id = ?", (candidate_id, company_id))
+    conn.commit()
+    conn.close()
+    return True
 # ---------- Company Settings ----------
 def get_company_settings(company_id: int) -> dict:
     import json

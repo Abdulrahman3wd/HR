@@ -2,12 +2,13 @@
 cv_screening.py
 ================
 AI-powered CV screening: extracts text from an uploaded CV file using
-layout-aware extraction (see ingestion.py's read_pdf), then asks the
-local LLM to compare it against a job's requirements with a structured,
-step-by-step matching prompt for higher accuracy.
+layout-aware extraction, then checks each required skill INDIVIDUALLY
+against the CV text (yes/no per skill) rather than asking the LLM to
+produce the full match list in one shot. This two-step approach is
+slower but far more accurate — single-skill yes/no questions hallucinate
+much less than "list all matching skills" prompts.
 """
 
-import json
 import re
 from pathlib import Path
 
@@ -15,10 +16,7 @@ import ollama
 from app.config import OLLAMA_MODEL
 from app.ingestion import read_txt, read_docx, read_pdf
 
-# Below this character count, we assume the PDF was likely scanned
-# (image-based) rather than containing real extractable text.
 MIN_VALID_CV_TEXT_LENGTH = 150
-
 MAX_CV_CHARS_FOR_LLM = 10000
 
 
@@ -35,52 +33,46 @@ def extract_cv_text(file_path: Path) -> str:
 
 
 def is_extraction_reliable(cv_text: str) -> bool:
-    """
-    Heuristic check: if extracted text is too short, the source file was
-    likely a scanned image rather than real text, and any AI score
-    computed from it would be misleading.
-    """
     return len(cv_text.strip()) >= MIN_VALID_CV_TEXT_LENGTH
 
 
-SCREENING_PROMPT = """أنت خبير توظيف متخصص في تحليل السير الذاتية التقنية ومقارنتها بمتطلبات الوظائف بدقة عالية.
+def _parse_requirements_to_skills(requirements: str) -> list[str]:
+    """
+    Splits a free-text requirements string into individual skill labels.
+    Handles comma-separated lists (the common case) and falls back to
+    treating the whole string as one skill if no separators are found.
+    """
+    # Split on commas, "و", "and", newlines, or bullet markers
+    raw_parts = re.split(r"[,\n،]|(?:\bو\b)|(?:\band\b)", requirements)
+    skills = [p.strip(" -•\t") for p in raw_parts]
+    skills = [s for s in skills if s]
+    return skills if skills else [requirements.strip()]
 
-# متطلبات الوظيفة
-{requirements}
 
-# نص السيرة الذاتية للمرشح
+SKILL_CHECK_PROMPT = """نص السيرة الذاتية:
+---
 {cv_text}
+---
 
-# التعليمات
-حلل السيرة الذاتية خطوة بخطوة بالمنهجية التالية قبل إعطاء الإجابة النهائية:
+هل المهارة أو التقنية التالية مذكورة صراحة في نص السيرة الذاتية أعلاه، أو مذكورة بصيغة مرادفة معروفة لها (مثل اختصار شائع)؟
 
-1. استخرج كل المهارات والتقنيات المذكورة صراحة في السيرة الذاتية (من أي قسم: Skills، الخبرات العملية، المشاريع، الدورات).
-2. لكل مهارة مطلوبة في متطلبات الوظيفة، تحقق من وجودها في قائمة مهارات المرشح مع مراعاة:
-   - المرادفات والاختصارات الشائعة (مثال: "JS" تعني "JavaScript"، ".NET Core" تعادل "ASP.NET Core")
-   - التقنيات ذات الصلة القوية التي تدل ضمنيًا على الخبرة (مثال: خبرة عملية موثقة بـ "Entity Framework Core" تدعم مهارة "ORM")
-   - لا تعتبر مهارة "موجودة" إذا كانت مجرد ذكر عابر لكلمة مشابهة بدون سياق واضح يدعمها
-3. لا تخترع أي مهارة غير مذكورة فعليًا أو مستنتجة بوضوح من السياق.
-4. احسب نسبة التطابق (match_score) بناءً على: (عدد المهارات المطلوبة الموجودة فعليًا ÷ إجمالي عدد المهارات المطلوبة) × 100، مع تعديل بسيط حسب سنوات الخبرة ذات الصلة الظاهرة في السيرة الذاتية.
+المهارة: "{skill}"
 
-# صيغة الإجابة
-أجب حصريًا بصيغة JSON صحيحة وبدون أي نص أو شرح قبلها أو بعدها، بالشكل التالي بالضبط:
-
-{{
-  "match_score": <رقم صحيح من 0 إلى 100>,
-  "matched_skills": [<قائمة بأسماء المهارات المطلوبة الموجودة فعليًا في السيرة الذاتية، بصيغتها كما وردت في متطلبات الوظيفة>],
-  "missing_skills": [<قائمة بأسماء المهارات المطلوبة وغير الموجودة>]
-}}
+أجب بكلمة واحدة فقط بدون أي شرح: "yes" أو "no".
 """
 
 
-def _extract_json(text: str) -> dict:
-    """LLMs sometimes wrap JSON in markdown fences or add stray text before/after;
-    this pulls out the first {...} block and parses it defensively."""
-    cleaned = re.sub(r"```(?:json)?", "", text)
-    match = re.search(r"\{.*\}", cleaned, re.DOTALL)
-    if not match:
-        raise ValueError("Model did not return valid JSON")
-    return json.loads(match.group(0))
+def _check_single_skill(cv_text: str, skill: str) -> bool:
+    prompt = SKILL_CHECK_PROMPT.format(cv_text=cv_text[:MAX_CV_CHARS_FOR_LLM], skill=skill)
+
+    response = ollama.chat(
+        model=OLLAMA_MODEL,
+        messages=[{"role": "user", "content": prompt}],
+        options={"temperature": 0.0},
+    )
+
+    answer = response["message"]["content"].strip().lower()
+    return "yes" in answer[:10]  # check the start, avoid matching stray "yes" elsewhere
 
 
 def screen_cv(cv_text: str, job_requirements: str) -> dict:
@@ -90,13 +82,12 @@ def screen_cv(cv_text: str, job_requirements: str) -> dict:
             "match_score": int,
             "matched_skills": list[str],
             "missing_skills": list[str],
-            "extraction_reliable": bool,   # False => likely a scanned PDF
+            "extraction_reliable": bool,
         }
     """
     extraction_reliable = is_extraction_reliable(cv_text)
 
     if not extraction_reliable:
-        # Don't waste an LLM call on near-empty text; be explicit about the issue
         return {
             "match_score": 0,
             "matched_skills": [],
@@ -104,30 +95,24 @@ def screen_cv(cv_text: str, job_requirements: str) -> dict:
             "extraction_reliable": False,
         }
 
-    prompt = SCREENING_PROMPT.format(
-        requirements=job_requirements,
-        cv_text=cv_text[:MAX_CV_CHARS_FOR_LLM],
-    )
+    required_skills = _parse_requirements_to_skills(job_requirements)
 
-    response = ollama.chat(
-        model=OLLAMA_MODEL,
-        messages=[{"role": "user", "content": prompt}],
-        options={"temperature": 0.1},  # lower temperature = more consistent scoring
-    )
+    matched_skills = []
+    missing_skills = []
 
-    raw_content = response["message"]["content"]
+    for skill in required_skills:
+        try:
+            found = _check_single_skill(cv_text, skill)
+        except Exception:
+            found = False
 
-    try:
-        parsed = _extract_json(raw_content)
-        match_score = int(parsed.get("match_score", 0))
-        matched_skills = list(parsed.get("matched_skills", []))
-        missing_skills = list(parsed.get("missing_skills", []))
-    except (ValueError, TypeError, KeyError):
-        match_score = 0
-        matched_skills = []
-        missing_skills = []
+        if found:
+            matched_skills.append(skill)
+        else:
+            missing_skills.append(skill)
 
-    match_score = max(0, min(100, match_score))
+    total = len(required_skills)
+    match_score = round((len(matched_skills) / total) * 100) if total > 0 else 0
 
     return {
         "match_score": match_score,

@@ -35,7 +35,7 @@ if not JWT_SECRET_KEY:
     )
 
 JWT_ALGORITHM = "HS256"
-JWT_EXPIRE_MINUTES = 480
+JWT_EXPIRE_MINUTES = 60 * 24 * 30  # 30 days
 
 SYSTEM_PROMPT_POLICY = """أنت مساعد ذكي لموظفي الشركة، دورك هو الرد على أسئلة الموظفين المتعلقة
 بسياسات الشركة (الإجازات، الحضور والانصراف، اللوائح الداخلية... إلخ).

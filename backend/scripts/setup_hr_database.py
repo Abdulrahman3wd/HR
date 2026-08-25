@@ -21,6 +21,7 @@ def main():
     conn = sqlite3.connect(HR_DB_FILE)
     cursor = conn.cursor()
     cursor.execute("PRAGMA foreign_keys = ON")
+    cursor.execute("DROP TABLE IF EXISTS overtime_requests")
     cursor.execute("DROP TABLE IF EXISTS late_permissions")
     cursor.execute("DROP TABLE IF EXISTS public_holidays")
     cursor.execute("DROP TABLE IF EXISTS public_holidays")
@@ -199,10 +200,10 @@ def main():
             work_end_time TEXT NOT NULL DEFAULT '17:00',
             flex_minutes INTEGER NOT NULL DEFAULT 60,
             monthly_late_allowance_minutes INTEGER NOT NULL DEFAULT 120,
+            overtime_multiplier REAL NOT NULL DEFAULT 1.5,
             FOREIGN KEY (company_id) REFERENCES companies(id)
         )
     """)
-
     cursor.execute("""
         CREATE TABLE public_holidays (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -214,6 +215,24 @@ def main():
     """)
     cursor.execute("""
         CREATE TABLE late_permissions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            company_id INTEGER NOT NULL,
+            employee_id TEXT NOT NULL,
+            date TEXT NOT NULL,
+            from_time TEXT NOT NULL,
+            to_time TEXT NOT NULL,
+            minutes_count INTEGER NOT NULL,
+            reason TEXT,
+            status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'approved', 'rejected')),
+            created_at TEXT NOT NULL,
+            reviewed_by TEXT,
+            reviewed_at TEXT,
+            FOREIGN KEY (company_id) REFERENCES companies(id)
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE overtime_requests (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             company_id INTEGER NOT NULL,
             employee_id TEXT NOT NULL,
@@ -245,12 +264,14 @@ def main():
 
     cursor.execute(
         "INSERT INTO company_settings (company_id, weekend_days, work_start_time, work_end_time, "
-        "flex_minutes, monthly_late_allowance_minutes) VALUES (?, '[4]', '09:00', '17:00', 60, 120)",
+        "flex_minutes, monthly_late_allowance_minutes, overtime_multiplier) "
+        "VALUES (?, '[4]', '09:00', '17:00', 60, 120, 1.5)",
         (acme_id,),
     )
     cursor.execute(
         "INSERT INTO company_settings (company_id, weekend_days, work_start_time, work_end_time, "
-        "flex_minutes, monthly_late_allowance_minutes) VALUES (?, '[4,5]', '09:00', '17:00', 30, 120)",
+        "flex_minutes, monthly_late_allowance_minutes, overtime_multiplier) "
+        "VALUES (?, '[4,5]', '09:00', '17:00', 30, 120, 1.5)",
         (globex_id,),
     )
 

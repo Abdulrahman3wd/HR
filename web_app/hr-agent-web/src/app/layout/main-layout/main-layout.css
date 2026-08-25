@@ -1,24 +1,16 @@
 .layout-wrapper {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
-  align-items: center;
-  justify-content: center;
   background-color: var(--color-bg-base);
-  padding: 1.5rem;
 }
 
 .app-shell {
   width: 100%;
-  max-width: 1100px;
-  height: calc(100vh - 3rem);
+  height: 100%;
   background-color: var(--color-bg-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 1.25rem;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
   display: flex;
   overflow: hidden;
 }
-
 .main-content {
   flex: 1;
   display: flex;

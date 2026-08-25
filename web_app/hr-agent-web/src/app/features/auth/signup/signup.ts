@@ -7,7 +7,8 @@ import { SignupService } from '../../../core/services/signup.service';
 import { I18nService } from '../../../core/services/i18n.service';
 import { ThemeToggle } from '../../../shared/components/theme-toggle/theme-toggle';
 import { LangToggle } from '../../../shared/components/lang-toggle/lang-toggle';
-
+import { ToastService } from '../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../core/services/confirm-dialog.service';
 @Component({
   selector: 'app-signup',
   imports: [ReactiveFormsModule, RouterLink, LucideAngularModule, ThemeToggle, LangToggle],
@@ -19,7 +20,8 @@ export class Signup {
   private readonly signupService = inject(SignupService);
   private readonly router = inject(Router);
   protected readonly i18n = inject(I18nService);
-
+private readonly toast = inject(ToastService);
+protected readonly confirmDialog = inject(ConfirmDialogService);
   protected readonly BuildingIcon = Building2;
   protected readonly UserIcon = UserRound;
   protected readonly LockIcon = Lock;
@@ -53,10 +55,12 @@ export class Signup {
         this.isLoading.set(false);
         this.isSuccess.set(true);
         this.registeredCompanyCode.set(response.company_code);
+        this.toast.success('Signup successful');
       },
       error: (err) => {
         this.isLoading.set(false);
         this.errorMessage.set(err.error?.detail || 'Something went wrong');
+        this.toast.error('Failed to signup');
       },
     });
   }

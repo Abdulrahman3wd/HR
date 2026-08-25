@@ -6,7 +6,8 @@ import { LatePermissionService } from '../../core/services/late-permission.servi
 import { I18nService } from '../../core/services/i18n.service';
 import { LatePermissionRecord, MonthlyLateUsage, PermissionStatus } from '../../core/models/late-permission.model';
 import { TranslationKey } from '../../core/services/translations';
-
+import { ToastService } from '../../core/services/toast.service';
+import { ConfirmDialogService } from '../../core/services/confirm-dialog.service';
 @Component({
   selector: 'app-late-permission',
   imports: [ReactiveFormsModule, LucideAngularModule],
@@ -17,6 +18,8 @@ export class LatePermission implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly service = inject(LatePermissionService);
   protected readonly i18n = inject(I18nService);
+  protected readonly toast = inject(ToastService);
+  protected readonly confirmDialog = inject(ConfirmDialogService);
 
   protected readonly ClockIcon = Clock;
   protected readonly UsageIcon = TrendingDown;
@@ -81,10 +84,12 @@ export class LatePermission implements OnInit {
           this.form.reset();
           this.loadRequests();
           this.loadUsage();
+          this.toast.success('Late permission submitted successfully');
         },
         error: (err) => {
           this.isSubmitting.set(false);
           this.statusMessage.set({ type: 'error', text: err.error?.detail || 'Error' });
+          this.toast.error('Failed to submit late permission');
         },
       });
   }

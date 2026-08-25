@@ -5,7 +5,8 @@ import { LucideAngularModule, CalendarPlus, Clock, CheckCircle2, XCircle } from 
 import { LeaveService } from '../../core/services/leave.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { LeaveRequestRecord, LeaveStatus } from '../../core/models/leave.model';
-
+import { ToastService } from '../../core/services/toast.service';
+import { ConfirmDialogService } from '../../core/services/confirm-dialog.service';
 @Component({
   selector: 'app-leave',
   imports: [ReactiveFormsModule, LucideAngularModule],
@@ -16,7 +17,8 @@ export class Leave implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly leaveService = inject(LeaveService);
   protected readonly i18n = inject(I18nService);
-
+  protected readonly toast = inject(ToastService);
+  protected readonly confirmDialog = inject(ConfirmDialogService);
   protected readonly PlusIcon = CalendarPlus;
   protected readonly ClockIcon = Clock;
   protected readonly CheckIcon = CheckCircle2;
@@ -65,13 +67,16 @@ export class Leave implements OnInit {
           this.statusMessage.set({ type: 'success', text: this.i18n.t('leave_success') });
           this.form.reset();
           this.loadRequests();
+          this.toast.success('Leave request submitted successfully');
         },
         error: (err) => {
           this.isSubmitting.set(false);
           this.statusMessage.set({
             type: 'error',
             text: err.error?.detail || this.i18n.t('leave_error'),
+            
           });
+          this.toast.error('Failed to submit leave request');
         },
       });
   }

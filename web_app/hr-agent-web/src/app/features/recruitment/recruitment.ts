@@ -6,7 +6,8 @@ import { TranslationKey } from '../../core/services/translations';
 import { RecruitmentService } from '../../core/services/recruitment.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { JobOpening, Candidate, CandidateStage } from '../../core/models/recruitment.model';
-
+import { ToastService } from '../../core/services/toast.service';
+import { ConfirmDialogService } from '../../core/services/confirm-dialog.service';
 type RecruitmentTab = 'jobs' | 'pipeline';
 
 const PIPELINE_STAGES: CandidateStage[] = [
@@ -28,7 +29,8 @@ export class Recruitment implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly recruitmentService = inject(RecruitmentService);
   protected readonly i18n = inject(I18nService);
-
+  private readonly toast = inject(ToastService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
   protected readonly JobsIcon = Briefcase;
   protected readonly PipelineIcon = Users;
   protected readonly PlusIcon = Plus;
@@ -174,7 +176,7 @@ export class Recruitment implements OnInit {
       const isValid = allowedExtensions.some((ext) => fileName.endsWith(ext));
 
       if (!isValid) {
-        this.cvValidationError.set('يجب أن يكون الملف بصيغة PDF أو DOCX أو TXT');
+        this.cvValidationError.set('File must be in PDF, DOCX, or TXT format');
         this.selectedCvFile.set(null);
         input.value = '';
         return;
@@ -192,7 +194,7 @@ export class Recruitment implements OnInit {
     }
 
     if (!this.selectedCvFile()) {
-      this.cvValidationError.set('يجب رفع السيرة الذاتية (CV) قبل إضافة المتقدم');
+      this.cvValidationError.set('CV must be uploaded before adding the candidate');
       return;
     }
 
@@ -301,14 +303,17 @@ export class Recruitment implements OnInit {
       });
   }
 
-  protected deleteCandidate(candidateId: number, event: Event): void {
+  protected async deleteCandidate(candidateId: number, event: Event): Promise<void> {
     event.stopPropagation();
-    if (!confirm('هل أنت متأكد من حذف هذا المتقدم؟')) return;
+    const confirmed = await this.confirmDialog.confirm('Do you really want to delete this candidate? This action cannot be undone.');
+    if (!confirmed) return;
 
     this.recruitmentService.deleteCandidate(candidateId).subscribe({
       next: () => {
         this.candidates.update((list) => list.filter((c) => c.id !== candidateId));
+        this.toast.success('Candidate deleted successfully');
       },
+      error: () => this.toast.error('Error deleting candidate'),
     });
   }
 }

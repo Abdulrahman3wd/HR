@@ -24,6 +24,7 @@ export class History implements OnInit {
       next: (data) => {
         this.logs.set(data.logs);
         this.isLoading.set(false);
+        
       },
       error: () => this.isLoading.set(false),
     });

@@ -264,6 +264,9 @@ export const translations = {
     account_late_deduction: 'خصم التأخير',
     account_total_deductions: 'إجمالي الخصومات',
     account_net_salary: 'صافي الراتب',
+
+        confirm_dialog_confirm: 'تأكيد',
+    confirm_dialog_cancel: 'إلغاء',
   },
   en: {
     app_name: 'HR Agent',
@@ -527,6 +530,8 @@ export const translations = {
     account_late_deduction: 'Late Deduction',
     account_total_deductions: 'Total Deductions',
     account_net_salary: 'Net Salary',
+        confirm_dialog_confirm: 'Confirm',
+    confirm_dialog_cancel: 'Cancel',
   },
 } as const;
 

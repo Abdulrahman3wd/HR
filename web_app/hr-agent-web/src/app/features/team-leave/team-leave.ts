@@ -7,7 +7,8 @@ import { I18nService } from '../../core/services/i18n.service';
 import { LeaveRequestRecord, LeaveStatus } from '../../core/models/leave.model';
 import { LatePermissionRecord } from '../../core/models/late-permission.model';
 import { TranslationKey } from '../../core/services/translations';
-
+import { ToastService } from '../../core/services/toast.service';
+import { ConfirmDialogService } from '../../core/services/confirm-dialog.service';
 type TeamTab = 'leave' | 'late';
 
 @Component({
@@ -20,7 +21,8 @@ export class TeamLeave implements OnInit {
   private readonly teamLeaveService = inject(TeamLeaveService);
   private readonly latePermissionService = inject(LatePermissionService);
   protected readonly i18n = inject(I18nService);
-
+  protected readonly toast = inject(ToastService);
+  protected readonly confirmDialog = inject(ConfirmDialogService);
   protected readonly ApproveIcon = Check;
   protected readonly RejectIcon = X;
   protected readonly EmptyIcon = Users2;
@@ -54,6 +56,7 @@ export class TeamLeave implements OnInit {
       next: () => {
         this.processingId.set(null);
         this.loadLeaveRequests();
+        this.toast.success('Leave request approved successfully');
       },
       error: () => this.processingId.set(null),
     });
@@ -65,6 +68,7 @@ export class TeamLeave implements OnInit {
       next: () => {
         this.processingId.set(null);
         this.loadLeaveRequests();
+        this.toast.success('Leave request rejected successfully');
       },
       error: () => this.processingId.set(null),
     });
@@ -87,6 +91,7 @@ export class TeamLeave implements OnInit {
       next: () => {
         this.processingId.set(null);
         this.loadLateRequests();
+        this.toast.success('Late permission approved successfully');
       },
       error: () => this.processingId.set(null),
     });
@@ -98,6 +103,7 @@ export class TeamLeave implements OnInit {
       next: () => {
         this.processingId.set(null);
         this.loadLateRequests();
+        this.toast.success('Late permission rejected successfully');
       },
       error: () => this.processingId.set(null),
     });

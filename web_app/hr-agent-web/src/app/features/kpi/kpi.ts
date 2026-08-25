@@ -8,7 +8,9 @@ import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { KpiEvaluationRecord, AttendanceMetrics, CurrentQuarter } from '../../core/models/kpi.model';
 import { AdminUserRecord } from '../../core/models/admin.model';
-
+import { TranslationKey } from '../../core/services/translations';
+import { ToastService } from '../../core/services/toast.service';
+import { ConfirmDialogService } from '../../core/services/confirm-dialog.service';
 type KpiTab = 'my' | 'manage';
 
 @Component({
@@ -23,6 +25,8 @@ export class Kpi implements OnInit {
   private readonly adminService = inject(AdminService);
   protected readonly auth = inject(AuthService);
   protected readonly i18n = inject(I18nService);
+  protected readonly toast = inject(ToastService);
+  protected readonly confirmDialog = inject(ConfirmDialogService);
 
   protected readonly TrendIcon = TrendingUp;
   protected readonly ClipboardIcon = ClipboardList;
@@ -128,10 +132,12 @@ export class Kpi implements OnInit {
           this.notesControl.setValue('');
           this.metrics.set(null);
           this.employeeHistory.update((list) => [created, ...list]);
+          this.toast.success('KPI evaluation saved successfully');
         },
         error: (err) => {
           this.isSubmittingEval.set(false);
           this.evalStatus.set({ type: 'error', text: err.error?.detail || 'Error' });
+          this.toast.error('Failed to save KPI evaluation');
         },
       });
   }

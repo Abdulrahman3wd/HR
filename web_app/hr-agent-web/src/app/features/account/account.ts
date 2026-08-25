@@ -9,7 +9,8 @@ import { I18nService } from '../../core/services/i18n.service';
 import { CurrentUserProfile } from '../../core/models/account.model';
 import { Department } from '../../core/models/department.model';
 import { NetSalary } from '../../core/models/payroll.model';
-
+import { ToastService } from '../../core/services/toast.service';
+import { ConfirmDialogService } from '../../core/services/confirm-dialog.service';
 function passwordsMatchValidator(control: AbstractControl): ValidationErrors | null {
   const newPassword = control.get('new_password')?.value;
   const confirmPassword = control.get('confirm_password')?.value;
@@ -28,7 +29,8 @@ export class Account implements OnInit {
   private readonly departmentService = inject(DepartmentService);
   private readonly payrollService = inject(PayrollService);
   protected readonly i18n = inject(I18nService);
-
+ protected readonly toast = inject(ToastService);
+  protected readonly confirmDialog = inject(ConfirmDialogService);
   protected readonly departments = signal<Department[]>([]);
   protected readonly salary = signal<NetSalary | null>(null);
   protected readonly KeyIcon = KeyRound;
@@ -92,6 +94,7 @@ protected roleLabel(role: 'admin' | 'hr' | 'employee'): string {
           this.isChanging.set(false);
           this.statusMessage.set({ type: 'success', text: this.i18n.t('account_password_changed') });
           this.form.reset();
+          this.toast.success('Password changed successfully');
         },
         error: (err) => {
           this.isChanging.set(false);
@@ -99,6 +102,7 @@ protected roleLabel(role: 'admin' | 'hr' | 'employee'): string {
             type: 'error',
             text: err.error?.detail || this.i18n.t('account_password_error'),
           });
+          this.toast.error('Failed to change password');
         },
       });
   }

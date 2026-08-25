@@ -1,0 +1,20 @@
+@if (dialogService.currentRequest(); as request) {
+  <div class="dialog-overlay" (click)="cancel()">
+    <div class="dialog-box" (click)="$event.stopPropagation()">
+      <div class="dialog-icon">
+        <lucide-icon [img]="WarningIcon" [size]="22" />
+      </div>
+
+      <p class="dialog-message">{{ request.message }}</p>
+
+      <div class="dialog-actions">
+        <button class="dialog-btn dialog-cancel" (click)="cancel()">
+          {{ i18n.t('confirm_dialog_cancel') }}
+        </button>
+        <button class="dialog-btn dialog-confirm" (click)="confirm()">
+          {{ i18n.t('confirm_dialog_confirm') }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

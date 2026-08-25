@@ -7,7 +7,8 @@ import { AuthService } from '../../../core/services/auth.service';
 import { I18nService } from '../../../core/services/i18n.service';
 import { ThemeToggle } from '../../../shared/components/theme-toggle/theme-toggle';
 import { LangToggle } from '../../../shared/components/lang-toggle/lang-toggle';
-
+import { ToastService } from '../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../core/services/confirm-dialog.service';
 @Component({
   selector: 'app-login',
   imports: [ReactiveFormsModule, LucideAngularModule, ThemeToggle, LangToggle, RouterLink],
@@ -19,7 +20,8 @@ export class Login {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   protected readonly i18n = inject(I18nService);
-
+protected readonly toast = inject(ToastService);
+protected readonly confirmDialog = inject(ConfirmDialogService);
   protected readonly BuildingIcon = Building2;
   protected readonly UserIcon = UserRound;
   protected readonly LockIcon = Lock;
@@ -47,6 +49,7 @@ export class Login {
         this.auth.setSession(response);
         this.isLoading.set(false);
         this.router.navigate(['/chat']);
+        this.toast.success('Login successful');
       },
       error: (err) => {
         this.isLoading.set(false);
@@ -55,6 +58,7 @@ export class Login {
             ? this.i18n.t('login_error_network')
             : this.i18n.t('login_error_generic')
         );
+        this.toast.error('Failed to login');
       },
     });
   }

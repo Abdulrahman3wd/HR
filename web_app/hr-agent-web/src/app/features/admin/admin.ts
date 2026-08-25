@@ -9,7 +9,8 @@ import { I18nService } from '../../core/services/i18n.service';
 import { AdminUserRecord, UserRole } from '../../core/models/admin.model';
 import { Department } from '../../core/models/department.model';
 import { CompanySettings, PublicHoliday } from '../../core/models/company-settings.model';
-
+import { ToastService } from '../../core/services/toast.service';
+import { ConfirmDialogService } from '../../core/services/confirm-dialog.service';
 type AdminTab = 'users' | 'departments' | 'docs' | 'attendance' | 'settings';
 
 @Component({
@@ -24,7 +25,8 @@ export class Admin implements OnInit {
   private readonly departmentService = inject(DepartmentService);
   private readonly companySettingsService = inject(CompanySettingsService);
   protected readonly i18n = inject(I18nService);
-
+  private readonly toast = inject(ToastService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
   protected readonly UsersIcon = Users;
   protected readonly DocsIcon = FileText;
   protected readonly DeptIcon = Building2;
@@ -168,10 +170,12 @@ export class Admin implements OnInit {
           this.isSavingUser.set(false);
           this.cancelEdit();
           this.loadUsers();
+          this.toast.success('User updated successfully');
         },
         error: (err) => {
           this.isSavingUser.set(false);
           this.userStatus.set({ type: 'error', text: err.error?.detail || 'Error' });
+          this.toast.error('Failed to update user');
         },
       });
     } else {
@@ -180,20 +184,27 @@ export class Admin implements OnInit {
           this.isSavingUser.set(false);
           this.cancelEdit();
           this.loadUsers();
+          this.toast.success('User created successfully');
         },
         error: (err) => {
           this.isSavingUser.set(false);
           this.userStatus.set({ type: 'error', text: err.error?.detail || 'Error' });
+          this.toast.error('Failed to create user');
         },
       });
     }
   }
 
-  protected deleteUser(employeeId: string): void {
-    if (!confirm(this.i18n.t('admin_confirm_delete_user'))) return;
+  protected async deleteUser(employeeId: string): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm('Do you really want to delete this user? This action cannot be undone.');
+    if (!confirmed) return;
 
     this.adminService.deleteUser(employeeId).subscribe({
-      next: () => this.loadUsers(),
+      next: () => {
+        this.loadUsers();
+        this.toast.success('User deleted successfully');
+      },
+      error: (err) => this.toast.error(err.error?.detail || 'Error deleting user'),
     });
   }
 
@@ -218,21 +229,27 @@ export class Admin implements OnInit {
       next: () => {
         this.newDeptName.set('');
         this.loadDepartments();
+        this.toast.success('Department added successfully');
       },
       error: (err) => {
         this.deptStatus.set({ type: 'error', text: err.error?.detail || 'Error' });
+        this.toast.error('Failed to add department');
       },
     });
   }
 
-  protected deleteDepartment(id: number): void {
-    if (!confirm('Delete this department?')) return;
+  protected async deleteDepartment(id: number): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm('Do you really want to delete this department? This action cannot be undone.');
+    if (!confirmed) return;
 
     this.departmentService.delete(id).subscribe({
-      next: () => this.loadDepartments(),
+      next: () => {
+        this.loadDepartments();
+        this.toast.success('Department deleted successfully');
+      },
+      error: (err) => this.toast.error(err.error?.detail || 'Error deleting department'),
     });
   }
-
   // ---------- Docs logic ----------
   private loadDocs(): void {
     this.adminService.listDocs().subscribe({
@@ -261,19 +278,26 @@ export class Admin implements OnInit {
         this.docStatus.set({ type: 'success', text: this.i18n.t('admin_upload_success') });
         this.selectedFile.set(null);
         this.loadDocs();
+        this.toast.success('Document uploaded successfully');
       },
       error: () => {
         this.isUploading.set(false);
         this.docStatus.set({ type: 'error', text: this.i18n.t('admin_upload_error') });
+        this.toast.error('Failed to upload document');
       },
     });
   }
 
-  protected deleteDoc(filename: string): void {
-    if (!confirm(this.i18n.t('admin_confirm_delete_doc'))) return;
+  protected async deleteDoc(filename: string): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm('Do you really want to delete this document? This action cannot be undone.');
+    if (!confirmed) return;
 
     this.adminService.deleteDoc(filename).subscribe({
-      next: () => this.loadDocs(),
+      next: () => {
+        this.loadDocs();
+        this.toast.success('Document deleted successfully');
+      },
+      error: (err) => this.toast.error(err.error?.detail || 'Error deleting document'),
     });
   }
     // ---------- Attendance import logic ----------
@@ -333,6 +357,7 @@ export class Admin implements OnInit {
       current.add(day);
     }
     this.selectedWeekendDays.set(current);
+
   }
 
   protected saveSettings(): void {
@@ -350,10 +375,12 @@ export class Admin implements OnInit {
           this.isSavingSettings.set(false);
           this.settings.set(data);
           this.settingsStatus.set({ type: 'success', text: this.i18n.t('settings_saved') });
+          this.toast.success('Settings saved successfully');
         },
         error: (err) => {
           this.isSavingSettings.set(false);
           this.settingsStatus.set({ type: 'error', text: err.error?.detail || 'Error' });
+          this.toast.error('Failed to save settings');
         },
       });
   }
@@ -375,13 +402,20 @@ export class Admin implements OnInit {
         this.newHolidayDate.set('');
         this.newHolidayName.set('');
         this.loadHolidays();
+        this.toast.success('Holiday added successfully');
       },
     });
   }
 
   protected deleteHoliday(id: number): void {
     this.companySettingsService.deleteHoliday(id).subscribe({
-      next: () => this.loadHolidays(),
+      next: () => {
+        this.loadHolidays();
+        this.toast.success('Holiday deleted successfully');
+      },
+      error: (err) => {
+        this.toast.error(err.error?.detail || 'Error deleting holiday');
+      }
     });
   }
     protected dayLabel(day: number): string {

@@ -29,6 +29,7 @@ from app.routers import (
     company_settings_routes,
     late_permission_routes,
     payroll_routes,
+    overtime_routes
 )
 from app.rate_limiter import limiter
 
@@ -62,7 +63,7 @@ app.include_router(company_settings_routes.router)
 app.include_router(company_settings_routes.holidays_router)
 app.include_router(late_permission_routes.router)
 app.include_router(payroll_routes.router)
-
+app.include_router(overtime_routes.router)
 @app.get("/health", tags=["System"])
 def health_check():
     return {"status": "ok", "message": "HR Agent API is running"}

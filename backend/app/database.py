@@ -985,7 +985,6 @@ def get_company_settings(company_id: int) -> dict:
     conn.close()
 
     if not row:
-        # Sensible defaults if a company somehow has no settings row yet
         return {
             "company_id": company_id,
             "weekend_days": [4],
@@ -993,6 +992,7 @@ def get_company_settings(company_id: int) -> dict:
             "work_end_time": "17:00",
             "flex_minutes": 60,
             "monthly_late_allowance_minutes": 120,
+            "overtime_multiplier": 1.5,
         }
 
     settings = dict(row)
@@ -1016,7 +1016,7 @@ def update_company_settings(company_id: int, updates: dict) -> dict:
     if not exists:
         cursor.execute(
             "INSERT INTO company_settings (company_id, weekend_days, work_start_time, work_end_time, "
-            "flex_minutes, monthly_late_allowance_minutes) VALUES (?, ?, ?, ?, ?, ?)",
+            "flex_minutes, monthly_late_allowance_minutes, overtime_multiplier) VALUES (?, ?, ?, ?, ?, ?, ?)",
             (
                 company_id,
                 payload.get("weekend_days", "[4]"),
@@ -1024,10 +1024,11 @@ def update_company_settings(company_id: int, updates: dict) -> dict:
                 payload.get("work_end_time", "17:00"),
                 payload.get("flex_minutes", 60),
                 payload.get("monthly_late_allowance_minutes", 120),
+                payload.get("overtime_multiplier", 1.5),
             ),
         )
     else:
-        allowed_fields = {"weekend_days", "work_start_time", "work_end_time", "flex_minutes", "monthly_late_allowance_minutes"}
+              allowed_fields = {"weekend_days", "work_start_time", "work_end_time", "flex_minutes", "monthly_late_allowance_minutes", "overtime_multiplier"}
         fields_to_update = {k: v for k, v in payload.items() if k in allowed_fields}
         if fields_to_update:
             set_clause = ", ".join(f"{field} = ?" for field in fields_to_update)
@@ -1296,8 +1297,10 @@ def calculate_net_salary(company_id: int, employee_id: str, year: int, month: in
     minute_rate = basic_salary / total_work_minutes_in_month if total_work_minutes_in_month > 0 else 0
     late_deduction = round(minute_rate * excess_minutes, 2)
 
+    overtime = get_monthly_overtime_amount(company_id, employee_id, year, month)
+
     total_deductions = round(social_insurance_amount + health_insurance_amount + late_deduction, 2)
-    net_salary = round(basic_salary - total_deductions, 2)
+    net_salary = round(basic_salary - total_deductions + overtime["overtime_amount"], 2)
 
     return {
         "employee_id": employee_id,
@@ -1308,6 +1311,137 @@ def calculate_net_salary(company_id: int, employee_id: str, year: int, month: in
         "health_insurance_amount": round(health_insurance_amount, 2),
         "late_excess_minutes": excess_minutes,
         "late_deduction_amount": late_deduction,
+        "overtime_minutes": overtime["total_minutes"],
+        "overtime_amount": overtime["overtime_amount"],
         "total_deductions": total_deductions,
         "net_salary": net_salary,
+    }
+    # ---------- Overtime Requests ----------
+def create_overtime_request(
+    company_id: int, employee_id: str, date: str, from_time: str, to_time: str, reason: str | None
+) -> dict:
+    def to_minutes(t: str) -> int:
+        h, m = map(int, t.split(":"))
+        return h * 60 + m
+
+    minutes_count = max(0, to_minutes(to_time) - to_minutes(from_time))
+
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO overtime_requests "
+        "(company_id, employee_id, date, from_time, to_time, minutes_count, reason, status, created_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now'))",
+        (company_id, employee_id, date, from_time, to_time, minutes_count, reason),
+    )
+    req_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return get_overtime_request_by_id(req_id, company_id)
+
+
+def get_overtime_request_by_id(req_id: int, company_id: int) -> dict | None:
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM overtime_requests WHERE id = ? AND company_id = ?", (req_id, company_id))
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def get_overtime_requests(company_id: int, employee_id: str | None = None, status: str | None = None) -> list[dict]:
+    conn = _get_connection()
+    cursor = conn.cursor()
+    query = "SELECT * FROM overtime_requests WHERE company_id = ?"
+    params = [company_id]
+    if employee_id:
+        query += " AND employee_id = ?"
+        params.append(employee_id)
+    if status:
+        query += " AND status = ?"
+        params.append(status)
+    query += " ORDER BY created_at DESC"
+    cursor.execute(query, params)
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def update_overtime_request_status(req_id: int, company_id: int, new_status: str, reviewed_by: str) -> dict | None:
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM overtime_requests WHERE id = ? AND company_id = ?", (req_id, company_id))
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        return None
+
+    req = dict(row)
+    if req["status"] != "pending":
+        conn.close()
+        raise ValueError(f"Request is already '{req['status']}'")
+
+    cursor.execute(
+        "UPDATE overtime_requests SET status = ?, reviewed_by = ?, reviewed_at = datetime('now') "
+        "WHERE id = ? AND company_id = ?",
+        (new_status, reviewed_by, req_id, company_id),
+    )
+    conn.commit()
+    conn.close()
+
+    message = (
+        f"تمت الموافقة على طلب الأوفرتايم بتاريخ {req['date']} من {req['from_time']} إلى {req['to_time']}."
+        if new_status == "approved"
+        else f"تم رفض طلب الأوفرتايم بتاريخ {req['date']}."
+    )
+    create_notification(company_id, req["employee_id"], message)
+
+    return get_overtime_request_by_id(req_id, company_id)
+
+
+def get_monthly_overtime_amount(company_id: int, employee_id: str, year: int, month: int) -> dict:
+    """Sums approved overtime minutes for the month and converts them to a monetary amount."""
+    from calendar import monthrange
+
+    start_date = f"{year:04d}-{month:02d}-01"
+    last_day = monthrange(year, month)[1]
+    end_date = f"{year:04d}-{month:02d}-{last_day:02d}"
+
+    approved = [
+        r for r in get_overtime_requests(company_id, employee_id=employee_id, status="approved")
+        if start_date <= r["date"] <= end_date
+    ]
+    total_minutes = sum(r["minutes_count"] for r in approved)
+
+    user = get_user_by_id(employee_id, company_id)
+    settings = get_company_settings(company_id)
+
+    def to_minutes(t: str) -> int:
+        h, m = map(int, t.split(":"))
+        return h * 60 + m
+
+    work_minutes_per_day = to_minutes(settings["work_end_time"]) - to_minutes(settings["work_start_time"])
+
+    from datetime import date as date_cls, timedelta
+
+    start = date_cls(year, month, 1)
+    end = date_cls(year, month, last_day)
+    weekend_days = set(settings["weekend_days"])
+    holiday_dates = get_holiday_dates_set(company_id, year=year)
+
+    expected_work_days = 0
+    current = start
+    while current <= end:
+        if current.weekday() not in weekend_days and current.isoformat() not in holiday_dates:
+            expected_work_days += 1
+        current += timedelta(days=1)
+
+    total_work_minutes_in_month = expected_work_days * work_minutes_per_day
+    minute_rate = user["basic_salary"] / total_work_minutes_in_month if total_work_minutes_in_month > 0 else 0
+    overtime_minute_rate = minute_rate * settings["overtime_multiplier"]
+    overtime_amount = round(overtime_minute_rate * total_minutes, 2)
+
+    return {
+        "total_minutes": total_minutes,
+        "overtime_amount": overtime_amount,
     }

@@ -342,6 +342,7 @@ class CompanySettingsResponse(BaseModel):
     work_end_time: str
     flex_minutes: int
     monthly_late_allowance_minutes: int
+    overtime_multiplier: float
 
 
 class CompanySettingsUpdate(BaseModel):
@@ -350,7 +351,7 @@ class CompanySettingsUpdate(BaseModel):
     work_end_time: str | None = None
     flex_minutes: int | None = None
     monthly_late_allowance_minutes: int | None = None
-
+    overtime_multiplier: float | None = None
 
 # ---------- Public Holidays ----------
 class PublicHolidayCreate(BaseModel):
@@ -415,5 +416,33 @@ class NetSalaryResponse(BaseModel):
     health_insurance_amount: float
     late_excess_minutes: int
     late_deduction_amount: float
+    overtime_minutes: int
+    overtime_amount: float
     total_deductions: float
     net_salary: float
+
+    # ---------- Overtime Requests ----------
+class OvertimeRequestCreate(BaseModel):
+    date: str
+    from_time: str
+    to_time: str
+    reason: str | None = None
+
+
+class OvertimeRequestRecord(BaseModel):
+    id: int
+    company_id: int
+    employee_id: str
+    date: str
+    from_time: str
+    to_time: str
+    minutes_count: int
+    reason: str | None
+    status: str
+    created_at: str
+    reviewed_by: str | None
+    reviewed_at: str | None
+
+
+class OvertimeRequestListResponse(BaseModel):
+    requests: list[OvertimeRequestRecord]

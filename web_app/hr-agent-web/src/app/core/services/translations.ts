@@ -265,8 +265,21 @@ export const translations = {
     account_total_deductions: 'إجمالي الخصومات',
     account_net_salary: 'صافي الراتب',
 
-        confirm_dialog_confirm: 'تأكيد',
+    confirm_dialog_confirm: 'تأكيد',
     confirm_dialog_cancel: 'إلغاء',
+
+    settings_overtime_multiplier: 'معامل الأوفرتايم (مثال: 1.5)',
+
+    nav_overtime: 'طلب أوفرتايم',
+    overtime_new_request: 'طلب أوفرتايم جديد',
+    overtime_submitted: 'تم إرسال طلب الأوفرتايم بنجاح',
+    overtime_my_requests: 'طلباتي',
+    overtime_no_requests: 'لا توجد طلبات أوفرتايم بعد',
+
+    team_overtime_title: 'طلبات الأوفرتايم للمراجعة',
+    team_overtime_empty: 'لا توجد طلبات معلقة',
+
+    account_overtime_amount: 'مبلغ الأوفرتايم',
   },
   en: {
     app_name: 'HR Agent',
@@ -530,8 +543,21 @@ export const translations = {
     account_late_deduction: 'Late Deduction',
     account_total_deductions: 'Total Deductions',
     account_net_salary: 'Net Salary',
-        confirm_dialog_confirm: 'Confirm',
+    confirm_dialog_confirm: 'Confirm',
     confirm_dialog_cancel: 'Cancel',
+
+    settings_overtime_multiplier: 'Overtime Multiplier (e.g. 1.5)',
+
+    nav_overtime: 'Overtime Request',
+    overtime_new_request: 'New Overtime Request',
+    overtime_submitted: 'Overtime request submitted successfully',
+    overtime_my_requests: 'My Requests',
+    overtime_no_requests: 'No overtime requests yet',
+
+    team_overtime_title: 'Overtime Requests to Review',
+    team_overtime_empty: 'No pending requests',
+
+    account_overtime_amount: 'Overtime Amount',
   },
 } as const;
 

@@ -1,10 +1,11 @@
 export interface CompanySettings {
   company_id: number;
-  weekend_days: number[]; // 0=Monday ... 6=Sunday
+  weekend_days: number[];
   work_start_time: string;
   work_end_time: string;
   flex_minutes: number;
   monthly_late_allowance_minutes: number;
+  overtime_multiplier: number;
 }
 
 export interface CompanySettingsUpdate {
@@ -13,6 +14,7 @@ export interface CompanySettingsUpdate {
   work_end_time?: string;
   flex_minutes?: number;
   monthly_late_allowance_minutes?: number;
+  overtime_multiplier?: number;
 }
 
 export interface PublicHoliday {

@@ -81,6 +81,7 @@ export class Admin implements OnInit {
     work_end_time: ['17:00'],
     flex_minutes: [60],
     monthly_late_allowance_minutes: [120],
+    overtime_multiplier: [1.5],
   });
   protected readonly isSavingSettings = signal(false);
   protected readonly settingsStatus = signal<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -344,6 +345,7 @@ export class Admin implements OnInit {
           work_end_time: data.work_end_time,
           flex_minutes: data.flex_minutes,
           monthly_late_allowance_minutes: data.monthly_late_allowance_minutes,
+          overtime_multiplier: data.overtime_multiplier,
         });
       },
     });

@@ -277,6 +277,10 @@
             <label class="field-label">{{ i18n.t('settings_late_allowance') }}</label>
             <input type="number" formControlName="monthly_late_allowance_minutes" class="field-input" style="max-width: 200px;" />
           </div>
+          <div class="form-field">
+            <label class="field-label">{{ i18n.t('settings_overtime_multiplier') }}</label>
+            <input type="number" step="0.1" formControlName="overtime_multiplier" class="field-input" style="max-width: 200px;" />
+          </div>
 
           <div class="form-field">
             <label class="field-label">{{ i18n.t('settings_weekend_title') }}</label>

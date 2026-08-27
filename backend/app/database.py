@@ -1028,7 +1028,7 @@ def update_company_settings(company_id: int, updates: dict) -> dict:
             ),
         )
     else:
-              allowed_fields = {"weekend_days", "work_start_time", "work_end_time", "flex_minutes", "monthly_late_allowance_minutes", "overtime_multiplier"}
+        allowed_fields = {"weekend_days", "work_start_time", "work_end_time", "flex_minutes", "monthly_late_allowance_minutes", "overtime_multiplier"}
         fields_to_update = {k: v for k, v in payload.items() if k in allowed_fields}
         if fields_to_update:
             set_clause = ", ".join(f"{field} = ?" for field in fields_to_update)
@@ -1038,7 +1038,6 @@ def update_company_settings(company_id: int, updates: dict) -> dict:
     conn.commit()
     conn.close()
     return get_company_settings(company_id)
-
 
 # ---------- Public Holidays ----------
 def list_public_holidays(company_id: int, year: int | None = None) -> list[dict]:

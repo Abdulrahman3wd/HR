@@ -58,6 +58,12 @@
             <span class="info-value deduction-value">-{{ s.late_deduction_amount }}</span>
           </div>
         }
+        @if (s.overtime_amount > 0) {
+          <div class="info-row">
+            <span class="info-label">{{ i18n.t('account_overtime_amount') }}</span>
+            <span class="info-value addition-value">+{{ s.overtime_amount }}</span>
+          </div>
+        }
         <div class="info-row net-salary-row">
           <span class="info-label">{{ i18n.t('account_net_salary') }}</span>
           <span class="info-value net-salary-value">{{ s.net_salary }}</span>

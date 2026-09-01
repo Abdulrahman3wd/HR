@@ -139,7 +139,9 @@
   font-size: 1.1rem;
   color: var(--color-success);
 }
-
+.addition-value {
+  color: var(--color-success);
+}
 /* ---------- Responsive ---------- */
 @media (max-width: 480px) {
   .account-page {

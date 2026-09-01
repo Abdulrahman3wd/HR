@@ -6,6 +6,9 @@
     <button class="tab-btn" [class.tab-active]="activeTab() === 'late'" (click)="switchTab('late')">
       {{ i18n.t('team_late_title') }}
     </button>
+    <button class="tab-btn" [class.tab-active]="activeTab() === 'overtime'" (click)="switchTab('overtime')">
+      {{ i18n.t('team_overtime_title') }}
+    </button>
   </div>
 
   @if (activeTab() === 'leave') {
@@ -66,6 +69,40 @@
                 {{ i18n.t('team_leave_approve') }}
               </button>
               <button class="action-btn reject-btn" [disabled]="processingId() === req.id" (click)="rejectLate(req.id)">
+                <lucide-icon [img]="RejectIcon" [size]="15" />
+                {{ i18n.t('team_leave_reject') }}
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  }
+
+  @if (activeTab() === 'overtime') {
+    @if (overtimeRequests().length === 0) {
+      <div class="empty-state">
+        <lucide-icon [img]="OvertimeIcon" [size]="26" />
+        <p>{{ i18n.t('team_overtime_empty') }}</p>
+      </div>
+    } @else {
+      <div class="requests-list">
+        @for (req of overtimeRequests(); track req.id) {
+          <div class="request-card">
+            <div class="request-info">
+              <div class="request-employee">{{ i18n.t('team_leave_by') }}: {{ req.employee_id }}</div>
+              <div class="request-dates">{{ req.date }} — {{ req.from_time }} → {{ req.to_time }} ({{ req.minutes_count }} {{ i18n.t('late_minutes_unit') }})</div>
+              @if (req.reason) {
+                <div class="request-reason">{{ req.reason }}</div>
+              }
+            </div>
+
+            <div class="request-actions">
+              <button class="action-btn approve-btn" [disabled]="processingId() === req.id" (click)="approveOvertime(req.id)">
+                <lucide-icon [img]="ApproveIcon" [size]="15" />
+                {{ i18n.t('team_leave_approve') }}
+              </button>
+              <button class="action-btn reject-btn" [disabled]="processingId() === req.id" (click)="rejectOvertime(req.id)">
                 <lucide-icon [img]="RejectIcon" [size]="15" />
                 {{ i18n.t('team_leave_reject') }}
               </button>

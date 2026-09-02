@@ -160,6 +160,7 @@ def main():
             department_id INTEGER,
             description TEXT NOT NULL,
             requirements TEXT NOT NULL,
+            custom_questions TEXT NOT NULL DEFAULT '[]',
             status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open', 'closed')),
             created_by TEXT NOT NULL,
             created_at TEXT NOT NULL,
@@ -181,17 +182,18 @@ def main():
             match_score INTEGER,
             matched_skills TEXT,
             missing_skills TEXT,
+            custom_answers TEXT NOT NULL DEFAULT '{}',
+            source TEXT NOT NULL DEFAULT 'manual' CHECK(source IN ('manual', 'self_applied')),
             stage TEXT NOT NULL DEFAULT 'applied' CHECK(
                 stage IN ('applied', 'reviewing', 'hr_interview', 'technical_interview', 'accepted', 'rejected')
             ),
             notes TEXT,
-            added_by TEXT NOT NULL,
+            added_by TEXT,
             applied_at TEXT NOT NULL,
             FOREIGN KEY (company_id) REFERENCES companies(id),
             FOREIGN KEY (job_opening_id) REFERENCES job_openings(id)
         )
     """)
-
     cursor.execute("""
         CREATE TABLE company_settings (
             company_id INTEGER PRIMARY KEY,

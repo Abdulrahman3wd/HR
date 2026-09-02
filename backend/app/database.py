@@ -765,13 +765,18 @@ def create_job_opening(
     requirements: str,
     created_by: str,
     department_id: int | None = None,
+    custom_questions: list[dict] | None = None,
 ) -> dict:
+    import json
+
     conn = _get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT INTO job_openings (company_id, title, department_id, description, requirements, status, created_by, created_at) "
-        "VALUES (?, ?, ?, ?, ?, 'open', ?, datetime('now'))",
-        (company_id, title, department_id, description, requirements, created_by),
+        "INSERT INTO job_openings (company_id, title, department_id, description, requirements, "
+        "custom_questions, status, created_by, created_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, 'open', ?, datetime('now'))",
+        (company_id, title, department_id, description, requirements,
+         json.dumps(custom_questions or []), created_by),
     )
     job_id = cursor.lastrowid
     conn.commit()
@@ -779,13 +784,24 @@ def create_job_opening(
     return get_job_opening_by_id(job_id, company_id)
 
 
-def get_job_opening_by_id(job_id: int, company_id: int) -> dict | None:
+def _parse_job_row(row: dict) -> dict:
+    import json
+    row["custom_questions"] = json.loads(row["custom_questions"]) if row["custom_questions"] else []
+    return row
+
+
+def get_job_opening_by_id(job_id: int, company_id: int | None = None) -> dict | None:
+    """company_id is optional here so the public (unauthenticated) job page
+    can look up a job by ID alone, without needing to know its company."""
     conn = _get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM job_openings WHERE id = ? AND company_id = ?", (job_id, company_id))
+    if company_id is not None:
+        cursor.execute("SELECT * FROM job_openings WHERE id = ? AND company_id = ?", (job_id, company_id))
+    else:
+        cursor.execute("SELECT * FROM job_openings WHERE id = ?", (job_id,))
     row = cursor.fetchone()
     conn.close()
-    return dict(row) if row else None
+    return _parse_job_row(dict(row)) if row else None
 
 
 def list_job_openings(company_id: int, status: str | None = None) -> list[dict]:
@@ -803,7 +819,7 @@ def list_job_openings(company_id: int, status: str | None = None) -> list[dict]:
         )
     rows = cursor.fetchall()
     conn.close()
-    return [dict(row) for row in rows]
+    return [_parse_job_row(dict(row)) for row in rows]
 
 
 def update_job_opening_status(job_id: int, company_id: int, status: str) -> dict | None:
@@ -828,7 +844,7 @@ def create_candidate(
     company_id: int,
     job_opening_id: int,
     full_name: str,
-    added_by: str,
+    added_by: str | None = None,
     email: str | None = None,
     phone: str | None = None,
     cv_filename: str | None = None,
@@ -836,6 +852,8 @@ def create_candidate(
     match_score: int | None = None,
     matched_skills: list[str] | None = None,
     missing_skills: list[str] | None = None,
+    custom_answers: dict | None = None,
+    source: str = "manual",
 ) -> dict:
     import json
 
@@ -845,14 +863,16 @@ def create_candidate(
         """
         INSERT INTO candidates
         (company_id, job_opening_id, full_name, email, phone, cv_filename, cv_text,
-         match_score, matched_skills, missing_skills, stage, added_by, applied_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'applied', ?, datetime('now'))
+         match_score, matched_skills, missing_skills, custom_answers, source, stage, added_by, applied_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'applied', ?, datetime('now'))
         """,
         (
             company_id, job_opening_id, full_name, email, phone, cv_filename, cv_text,
             match_score,
             json.dumps(matched_skills) if matched_skills else None,
             json.dumps(missing_skills) if missing_skills else None,
+            json.dumps(custom_answers or {}),
+            source,
             added_by,
         ),
     )
@@ -866,6 +886,7 @@ def _parse_candidate_row(row: dict) -> dict:
     import json
     row["matched_skills"] = json.loads(row["matched_skills"]) if row["matched_skills"] else []
     row["missing_skills"] = json.loads(row["missing_skills"]) if row["missing_skills"] else []
+    row["custom_answers"] = json.loads(row["custom_answers"]) if row["custom_answers"] else {}
     return row
 
 

@@ -24,6 +24,7 @@ from app.models import (
     CandidateStageUpdate,
     CandidateNotesUpdate,
     CandidateInfoUpdate,
+    CustomQuestion,
 )
 from app import database
 from app.cv_screening import extract_cv_text, screen_cv
@@ -50,8 +51,8 @@ def create_job(request: JobOpeningCreate, current_user: dict = Depends(require_h
         requirements=request.requirements,
         created_by=current_user["employee_id"],
         department_id=request.department_id,
+        custom_questions=[q.model_dump() for q in request.custom_questions],
     )
-
 
 @router.get("/jobs", response_model=JobOpeningListResponse)
 def list_jobs(status: str | None = None, current_user: dict = Depends(require_hr_or_admin)):

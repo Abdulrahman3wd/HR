@@ -272,11 +272,22 @@ class KpiEvaluationListResponse(BaseModel):
     evaluations: list[KpiEvaluationRecord]
 
 # ---------- Recruitment / ATS ----------
+class CustomQuestionType(str):
+    pass  # 'number' | 'text' | 'yes_no'
+
+
+class CustomQuestion(BaseModel):
+    question: str
+    type: str  # 'number' | 'text' | 'yes_no'
+    required: bool = True
+
+
 class JobOpeningCreate(BaseModel):
     title: str
     description: str
     requirements: str
     department_id: int | None = None
+    custom_questions: list[CustomQuestion] = []
 
 
 class JobOpeningRecord(BaseModel):
@@ -286,10 +297,10 @@ class JobOpeningRecord(BaseModel):
     department_id: int | None
     description: str
     requirements: str
+    custom_questions: list[CustomQuestion]
     status: str
     created_by: str
     created_at: str
-
 
 class JobOpeningListResponse(BaseModel):
     jobs: list[JobOpeningRecord]
@@ -313,9 +324,11 @@ class CandidateRecord(BaseModel):
     match_score: int | None
     matched_skills: list[str]
     missing_skills: list[str]
+    custom_answers: dict
+    source: str
     stage: str
     notes: str | None
-    added_by: str
+    added_by: str | None
     applied_at: str
 
 
@@ -446,3 +459,18 @@ class OvertimeRequestRecord(BaseModel):
 
 class OvertimeRequestListResponse(BaseModel):
     requests: list[OvertimeRequestRecord]
+
+
+# ---------- Public Job Application ----------
+class PublicJobResponse(BaseModel):
+    id: int
+    title: str
+    description: str
+    requirements: str
+    custom_questions: list[CustomQuestion]
+    status: str
+
+
+class PublicApplicationSubmitResponse(BaseModel):
+    message: str
+    candidate_id: int

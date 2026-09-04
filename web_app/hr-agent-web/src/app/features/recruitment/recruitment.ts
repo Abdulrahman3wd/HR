@@ -1,11 +1,11 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { ReactiveFormsModule, FormsModule, FormBuilder, Validators } from '@angular/forms';
-import { LucideAngularModule, Briefcase, Users, Plus, X, Upload, FileText, Pencil, Trash2, Check } from 'lucide-angular';
+import { LucideAngularModule, Briefcase, Users, Plus, X, Upload, FileText, Pencil, Trash2, Check, Link2, Copy } from 'lucide-angular';
 import { DragDropModule, CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { TranslationKey } from '../../core/services/translations';
 import { RecruitmentService } from '../../core/services/recruitment.service';
 import { I18nService } from '../../core/services/i18n.service';
-import { JobOpening, Candidate, CandidateStage } from '../../core/models/recruitment.model';
+import { JobOpening, Candidate, CandidateStage, CustomQuestion, QuestionType } from '../../core/models/recruitment.model';
 import { ToastService } from '../../core/services/toast.service';
 import { ConfirmDialogService } from '../../core/services/confirm-dialog.service';
 type RecruitmentTab = 'jobs' | 'pipeline';
@@ -29,6 +29,7 @@ export class Recruitment implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly recruitmentService = inject(RecruitmentService);
   protected readonly i18n = inject(I18nService);
+  
   private readonly toast = inject(ToastService);
   private readonly confirmDialog = inject(ConfirmDialogService);
   protected readonly JobsIcon = Briefcase;
@@ -40,6 +41,8 @@ export class Recruitment implements OnInit {
   protected readonly EditIcon = Pencil;
   protected readonly DeleteIcon = Trash2;
   protected readonly SaveIcon = Check;
+    protected readonly LinkIcon = Link2;
+  protected readonly CopyIcon = Copy;
   protected readonly activeTab = signal<RecruitmentTab>('jobs');
   protected readonly stages = PIPELINE_STAGES;
 
@@ -62,9 +65,13 @@ export class Recruitment implements OnInit {
   protected readonly candidateStatus = signal<{ type: 'success' | 'error'; text: string } | null>(null);
   protected readonly isAddingCandidate = signal(false);
   protected readonly selectedCvFile = signal<File | null>(null);
-    protected readonly editingCandidateId = signal<number | null>(null);
+  protected readonly editingCandidateId = signal<number | null>(null);
   protected readonly cvValidationError = signal<string | null>(null);
-
+  protected readonly customQuestions = signal<CustomQuestion[]>([]);
+  protected readonly newQuestionText = signal('');
+  protected readonly newQuestionType = signal<QuestionType>('text');
+  protected readonly newQuestionRequired = signal(true);
+  protected readonly viewingLinkJobId = signal<number | null>(null);
   protected readonly editForm = this.fb.nonNullable.group({
     full_name: ['', Validators.required],
     email: [''],
@@ -108,18 +115,26 @@ export class Recruitment implements OnInit {
     this.isCreatingJob.set(true);
     this.jobStatus.set(null);
 
-    this.recruitmentService.createJob({ ...this.jobForm.getRawValue(), department_id: null }).subscribe({
-      next: () => {
-        this.isCreatingJob.set(false);
-        this.jobForm.reset();
-        this.showJobForm.set(false);
-        this.loadJobs();
-      },
-      error: (err) => {
-        this.isCreatingJob.set(false);
-        this.jobStatus.set({ type: 'error', text: err.error?.detail || 'Error' });
-      },
-    });
+    this.recruitmentService
+      .createJob({
+        ...this.jobForm.getRawValue(),
+        department_id: null,
+        custom_questions: this.customQuestions(),
+      })
+      .subscribe({
+        next: () => {
+          this.isCreatingJob.set(false);
+          this.jobForm.reset();
+          this.customQuestions.set([]);
+          this.showJobForm.set(false);
+          this.loadJobs();
+          this.toast.success('Job created successfully');
+        },
+        error: (err) => {
+          this.isCreatingJob.set(false);
+          this.jobStatus.set({ type: 'error', text: err.error?.detail || 'Error' });
+        },
+      });
   }
 
   protected closeJob(jobId: number): void {
@@ -314,6 +329,44 @@ export class Recruitment implements OnInit {
         this.toast.success('Candidate deleted successfully');
       },
       error: () => this.toast.error('Error deleting candidate'),
+    });
+  }
+    protected addCustomQuestion(): void {
+    const text = this.newQuestionText().trim();
+    if (!text) return;
+
+    this.customQuestions.update((list) => [
+      ...list,
+      { question: text, type: this.newQuestionType(), required: this.newQuestionRequired() },
+    ]);
+
+    this.newQuestionText.set('');
+    this.newQuestionType.set('text');
+    this.newQuestionRequired.set(true);
+  }
+
+  protected removeCustomQuestion(index: number): void {
+    this.customQuestions.update((list) => list.filter((_, i) => i !== index));
+  }
+
+  protected questionTypeLabel(type: QuestionType): string {
+    if (type === 'number') return 'number';
+    if (type === 'yes_no') return 'yes/no';
+    return 'text';
+  }
+
+  protected getPublicJobLink(jobId: number): string {
+    return `${window.location.origin}/apply/${jobId}`;
+  }
+
+  protected toggleLinkView(jobId: number): void {
+    this.viewingLinkJobId.update((current) => (current === jobId ? null : jobId));
+  }
+
+  protected copyLink(jobId: number): void {
+    const link = this.getPublicJobLink(jobId);
+    navigator.clipboard.writeText(link).then(() => {
+      this.toast.success('Link copied successfully');
     });
   }
 }

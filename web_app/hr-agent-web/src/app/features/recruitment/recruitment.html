@@ -38,6 +38,60 @@
               rows="2"
             ></textarea>
 
+            <div class="custom-questions-section">
+              <h4 class="subsection-title">{{ i18n.t('recruitment_custom_questions') }}</h4>
+
+              @if (customQuestions().length > 0) {
+                <div class="question-list">
+                  @for (q of customQuestions(); track $index) {
+                    <div class="question-item">
+                      <span class="question-text">{{ q.question }}</span>
+                      <span class="question-type-badge">{{ questionTypeLabel(q.type) }}</span>
+                      @if (q.required) {
+                        <span class="question-required-badge">{{ i18n.t('recruitment_required') }}</span>
+                      }
+                      <button type="button" class="icon-btn-sm icon-danger" (click)="removeCustomQuestion($index)">
+                        <lucide-icon [img]="CloseIcon" [size]="12" />
+                      </button>
+                    </div>
+                  }
+                </div>
+              }
+
+              <div class="add-question-row">
+                <input
+                  type="text"
+                  [ngModel]="newQuestionText()"
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="newQuestionText.set($event)"
+                  [placeholder]="i18n.t('recruitment_question_placeholder')"
+                  class="field-input"
+                />
+                <select
+                  [ngModel]="newQuestionType()"
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="newQuestionType.set($event)"
+                  class="field-input question-type-select"
+                >
+                  <option value="text">{{ i18n.t('recruitment_type_text') }}</option>
+                  <option value="number">{{ i18n.t('recruitment_type_number') }}</option>
+                  <option value="yes_no">{{ i18n.t('recruitment_type_yes_no') }}</option>
+                </select>
+                <label class="required-checkbox">
+                  <input
+                    type="checkbox"
+                    [ngModel]="newQuestionRequired()"
+                    [ngModelOptions]="{ standalone: true }"
+                    (ngModelChange)="newQuestionRequired.set($event)"
+                  />
+                  {{ i18n.t('recruitment_required') }}
+                </label>
+                <button type="button" class="add-question-btn" (click)="addCustomQuestion()">
+                  <lucide-icon [img]="PlusIcon" [size]="14" />
+                </button>
+              </div>
+            </div>
+
             @if (jobStatus()) {
               <div class="status-msg status-error">{{ jobStatus()!.text }}</div>
             }
@@ -71,10 +125,23 @@
               <div class="job-actions">
                 @if (job.status === 'open') {
                   <button class="link-btn" (click)="closeJob(job.id)">{{ i18n.t('recruitment_close_job') }}</button>
+                  <button class="link-btn" (click)="toggleLinkView(job.id)">
+                    <lucide-icon [img]="LinkIcon" [size]="13" />
+                    {{ i18n.t('recruitment_view_link') }}
+                  </button>
                 } @else {
                   <button class="link-btn" (click)="reopenJob(job.id)">{{ i18n.t('recruitment_reopen_job') }}</button>
                 }
               </div>
+
+              @if (viewingLinkJobId() === job.id) {
+                <div class="job-link-box">
+                  <span class="job-link-text">{{ getPublicJobLink(job.id) }}</span>
+                  <button class="copy-link-btn" (click)="copyLink(job.id)">
+                    <lucide-icon [img]="CopyIcon" [size]="13" />
+                  </button>
+                </div>
+              }
             </div>
           }
         </div>

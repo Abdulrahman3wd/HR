@@ -536,6 +536,131 @@
   gap: 0.4rem;
   justify-content: flex-end;
 }
+.custom-questions-section {
+  border-top: 1px solid var(--color-border);
+  padding-top: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.subsection-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.question-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.question-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.7rem;
+  background-color: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+}
+
+.question-text {
+  flex: 1;
+  color: var(--color-text-primary);
+}
+
+.question-type-badge {
+  background-color: var(--color-bg-muted);
+  color: var(--color-text-secondary);
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.68rem;
+}
+
+.question-required-badge {
+  background-color: color-mix(in srgb, var(--color-danger) 12%, transparent);
+  color: var(--color-danger);
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.68rem;
+}
+
+.add-question-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.add-question-row .field-input {
+  flex: 1;
+  min-width: 150px;
+}
+
+.question-type-select {
+  max-width: 110px;
+}
+
+.required-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.add-question-btn {
+  width: 2.2rem;
+  height: 2.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  border: none;
+  background-color: var(--color-primary);
+  color: var(--color-primary-text);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.job-link-box {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+  padding: 0.6rem 0.8rem;
+  background-color: var(--color-primary-subtle);
+  border-radius: 0.6rem;
+}
+
+.job-link-text {
+  flex: 1;
+  font-size: 0.75rem;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: ltr;
+  text-align: left;
+}
+
+.copy-link-btn {
+  width: 1.8rem;
+  height: 1.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.4rem;
+  border: none;
+  background-color: var(--color-primary);
+  color: var(--color-primary-text);
+  cursor: pointer;
+  flex-shrink: 0;
+}
 /* ---------- Responsive ---------- */
 @media (max-width: 640px) {
   .recruitment-page {

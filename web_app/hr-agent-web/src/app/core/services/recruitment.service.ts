@@ -9,6 +9,8 @@ import {
   CandidateListResponse,
   CandidateStage,
   CandidateInfoUpdate,
+  PublicJob,
+  PublicApplicationSubmitResponse,
 } from '../models/recruitment.model';
 @Injectable({ providedIn: 'root' })
 export class RecruitmentService {
@@ -69,5 +71,30 @@ export class RecruitmentService {
 
   deleteCandidate(candidateId: number) {
     return this.http.delete<{ message: string }>(`${this.base}/recruitment/candidates/${candidateId}`);
+  }
+    // ---------- Public (unauthenticated) ----------
+  getPublicJob(jobId: number) {
+    return this.http.get<PublicJob>(`${this.base}/public/jobs/${jobId}`);
+  }
+
+  submitPublicApplication(
+    jobId: number,
+    fullName: string,
+    email: string | null,
+    phone: string | null,
+    customAnswers: Record<string, string>,
+    cvFile: File
+  ) {
+    const formData = new FormData();
+    formData.append('full_name', fullName);
+    if (email) formData.append('email', email);
+    if (phone) formData.append('phone', phone);
+    formData.append('custom_answers_json', JSON.stringify(customAnswers));
+    formData.append('cv_file', cvFile);
+
+    return this.http.post<PublicApplicationSubmitResponse>(
+      `${this.base}/public/jobs/${jobId}/apply`,
+      formData
+    );
   }
 }

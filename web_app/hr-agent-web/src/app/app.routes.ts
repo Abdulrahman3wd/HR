@@ -12,6 +12,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/signup/signup').then((m) => m.Signup),
   },
   {
+    path: 'apply/:jobId',
+    loadComponent: () => import('./features/public-apply/public-apply').then((m) => m.PublicApply),
+  },
+  {
     path: '',
     canActivate: [authGuard],
     loadComponent: () => import('./layout/main-layout/main-layout').then((m) => m.MainLayout),

@@ -1,0 +1,137 @@
+<div class="apply-page">
+  <div class="top-controls">
+    <app-theme-toggle />
+    <app-lang-toggle />
+  </div>
+
+  @if (isLoading()) {
+    <div class="state-box">
+      <p>{{ i18n.t('apply_loading') }}</p>
+    </div>
+  } @else if (notFound()) {
+    <div class="state-box">
+      <lucide-icon [img]="BriefcaseIcon" [size]="32" />
+      <h2>{{ i18n.t('apply_not_found_title') }}</h2>
+      <p>{{ i18n.t('apply_not_found_subtitle') }}</p>
+    </div>
+  } @else if (isSuccess()) {
+    <div class="apply-card success-card">
+      <div class="success-icon">
+        <lucide-icon [img]="SuccessIcon" [size]="32" />
+      </div>
+      <h2>{{ i18n.t('apply_success_title') }}</h2>
+      <p>{{ i18n.t('apply_success_subtitle') }}</p>
+    </div>
+  } @else if (job(); as j) {
+    <div class="apply-card">
+      <div class="job-header">
+        <div class="job-icon">
+          <lucide-icon [img]="BriefcaseIcon" [size]="20" />
+        </div>
+        <h1 class="job-title">{{ j.title }}</h1>
+      </div>
+
+      <div class="job-info-block">
+        <h3 class="info-title">{{ i18n.t('apply_description_label') }}</h3>
+        <p class="info-text">{{ j.description }}</p>
+      </div>
+
+      <div class="job-info-block">
+        <h3 class="info-title">{{ i18n.t('apply_requirements_label') }}</h3>
+        <p class="info-text">{{ j.requirements }}</p>
+      </div>
+
+      <div class="apply-form-section">
+        <h3 class="form-section-title">{{ i18n.t('apply_form_title') }}</h3>
+
+        <div class="form-field">
+          <label class="field-label">{{ i18n.t('apply_full_name') }} *</label>
+          <input
+            type="text"
+            [ngModel]="fullName()"
+            (ngModelChange)="fullName.set($event)"
+            class="field-input"
+          />
+        </div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <label class="field-label">{{ i18n.t('apply_email') }}</label>
+            <input
+              type="email"
+              [ngModel]="email()"
+              (ngModelChange)="email.set($event)"
+              class="field-input"
+            />
+          </div>
+          <div class="form-field">
+            <label class="field-label">{{ i18n.t('apply_phone') }}</label>
+            <input
+              type="text"
+              [ngModel]="phone()"
+              (ngModelChange)="phone.set($event)"
+              class="field-input"
+            />
+          </div>
+        </div>
+
+        @for (question of j.custom_questions; track question.question) {
+          <div class="form-field">
+            <label class="field-label">
+              {{ question.question }}
+              @if (question.required) { <span class="required-mark">*</span> }
+            </label>
+
+            @if (question.type === 'yes_no') {
+              <select
+                [ngModel]="customAnswers()[question.question] || ''"
+                (ngModelChange)="onAnswerChange(question.question, $event)"
+                class="field-input"
+              >
+                <option value="">—</option>
+                <option value="yes">{{ i18n.t('apply_yes') }}</option>
+                <option value="no">{{ i18n.t('apply_no') }}</option>
+              </select>
+            } @else {
+              <input
+                [type]="questionInputType(question)"
+                [ngModel]="customAnswers()[question.question] || ''"
+                (ngModelChange)="onAnswerChange(question.question, $event)"
+                class="field-input"
+              />
+            }
+          </div>
+        }
+
+        <div class="form-field">
+          <label class="field-label">{{ i18n.t('apply_cv_label') }} *</label>
+          <div class="cv-upload-box">
+            <input
+              type="file"
+              id="applyCvInput"
+              (change)="onFileSelected($event)"
+              accept=".pdf,.docx,.txt"
+              class="cv-file-input-hidden"
+            />
+            <label for="applyCvInput" class="cv-upload-label">
+              <lucide-icon [img]="selectedFile() ? FileIcon : UploadIcon" [size]="18" />
+              @if (selectedFile()) {
+                <span class="cv-file-name">{{ selectedFile()!.name }}</span>
+              } @else {
+                <span>{{ i18n.t('apply_cv_upload_hint') }}</span>
+              }
+            </label>
+          </div>
+        </div>
+
+        @if (errorMessage()) {
+          <div class="error-box">{{ errorMessage() }}</div>
+        }
+
+        <button class="submit-btn" (click)="submit()" [disabled]="isSubmitting()">
+          {{ isSubmitting() ? i18n.t('apply_submitting') : i18n.t('apply_submit') }}
+        </button>
+      </div>
+    </div>
+  }
+</div>

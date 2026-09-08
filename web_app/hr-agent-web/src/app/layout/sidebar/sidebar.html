@@ -1,79 +1,93 @@
-<aside class="sidebar" [class.sidebar-collapsed]="layout.isSidebarCollapsed()">
+<aside class="sidebar" [class.sidebar-collapsed]="layout.isSidebarCollapsed()" [class.sidebar-mobile-open]="layout.isMobileSidebarOpen()" [class.sidebar-rtl]="i18n.lang() === 'ar'">
   <div class="sidebar-top">
-    <div class="sidebar-logo">
-      <span class="logo-dot"></span>
-    </div>
-
-    @if (!layout.isSidebarCollapsed()) {
-      <div class="sidebar-user">
-        <div class="user-name">{{ auth.currentUser()?.full_name }}</div>
-        <div class="user-role">{{ auth.currentUser()?.company_name }}</div>
+    <button class="brand-button" (click)="layout.toggleSidebar()" [attr.aria-label]="i18n.t('nav_toggle_sidebar')">
+      <span class="brand-mark"><span></span></span>
+    </button>
+    @if (!layout.isSidebarCollapsed() || layout.isMobileSidebarOpen()) {
+      <div class="brand-copy">
+        <strong>QADRA</strong>
+        <span>قدرة</span>
       </div>
     }
 
-    <button class="collapse-btn" (click)="layout.toggleCollapse()">
-      <lucide-icon [img]="toggleIcon()" [size]="17" />
-    </button>
+  </div>
+
+  <div class="tablet-controls">
+    <label class="tablet-search">
+      <lucide-icon [img]="SearchIcon" [size]="14" />
+      <input [placeholder]="i18n.lang() === 'ar' ? 'ابحث في النظام...' : 'Search console...'" />
+    </label>
+    <div class="tablet-actions">
+      <app-lang-toggle />
+      <app-theme-toggle />
+    </div>
   </div>
 
   <nav class="sidebar-nav">
-    @if (auth.isAdmin()) {
-      <a routerLink="/dashboard" routerLinkActive="active" class="nav-item" (click)="onNavItemClick()">
-        <lucide-icon [img]="DashboardIcon" [size]="19" />
-        @if (!layout.isSidebarCollapsed()) { <span>{{ i18n.t('nav_dashboard') }}</span> }
-      </a>
-    }
+    @if (!layout.isSidebarCollapsed() || layout.isMobileSidebarOpen()) { <div class="nav-section-label">{{ i18n.t('nav_section_workspace') }}</div> }
+
+    <a routerLink="/dashboard" routerLinkActive="active" class="nav-item" (click)="onNavItemClick()">
+      <lucide-icon [img]="DashboardIcon" [size]="18" />
+      @if (!layout.isSidebarCollapsed() || layout.isMobileSidebarOpen()) { <span>{{ i18n.t('nav_dashboard') }}</span> }
+    </a>
 
     <a routerLink="/chat" routerLinkActive="active" class="nav-item" (click)="onNavItemClick()">
       <lucide-icon [img]="ChatIcon" [size]="19" />
-      @if (!layout.isSidebarCollapsed()) { <span>{{ i18n.t('nav_chat') }}</span> }
+      @if (!layout.isSidebarCollapsed() || layout.isMobileSidebarOpen()) { <span>{{ i18n.t('nav_chat') }}</span> }
     </a>
 
     <a routerLink="/leave" routerLinkActive="active" class="nav-item" (click)="onNavItemClick()">
       <lucide-icon [img]="LeaveIcon" [size]="19" />
-      @if (!layout.isSidebarCollapsed()) { <span>{{ i18n.t('nav_leave') }}</span> }
+      @if (!layout.isSidebarCollapsed() || layout.isMobileSidebarOpen()) { <span>{{ i18n.t('nav_leave') }}</span> }
     </a>
     <a routerLink="/late-permission" routerLinkActive="active" class="nav-item" (click)="onNavItemClick()">
   <lucide-icon [img]="LatePermissionIcon" [size]="19" />
-  @if (!layout.isSidebarCollapsed()) { <span>{{ i18n.t('nav_late_permission') }}</span> }
+  @if (!layout.isSidebarCollapsed() || layout.isMobileSidebarOpen()) { <span>{{ i18n.t('nav_late_permission') }}</span> }
 </a>
     <a routerLink="/team-leave" routerLinkActive="active" class="nav-item" (click)="onNavItemClick()">
   <lucide-icon [img]="TeamIcon" [size]="19" />
-  @if (!layout.isSidebarCollapsed()) { <span>{{ i18n.t('nav_team_leave') }}</span> }
+  @if (!layout.isSidebarCollapsed() || layout.isMobileSidebarOpen()) { <span>{{ i18n.t('nav_team_leave') }}</span> }
     </a>
     <a routerLink="/kpi" routerLinkActive="active" class="nav-item" (click)="onNavItemClick()">
   <lucide-icon [img]="KpiIcon" [size]="19" />
-  @if (!layout.isSidebarCollapsed()) { <span>{{ i18n.t('nav_kpi') }}</span> }
+  @if (!layout.isSidebarCollapsed() || layout.isMobileSidebarOpen()) { <span>{{ i18n.t('nav_kpi') }}</span> }
 </a>
 
     <a routerLink="/history" routerLinkActive="active" class="nav-item" (click)="onNavItemClick()">
       <lucide-icon [img]="HistoryIcon" [size]="19" />
-      @if (!layout.isSidebarCollapsed()) { <span>{{ i18n.t('nav_history') }}</span> }
+      @if (!layout.isSidebarCollapsed() || layout.isMobileSidebarOpen()) { <span>{{ i18n.t('nav_history') }}</span> }
     </a>
 
-    <a routerLink="/account" routerLinkActive="active" class="nav-item" (click)="onNavItemClick()">
-      <lucide-icon [img]="AccountIcon" [size]="19" />
-      @if (!layout.isSidebarCollapsed()) { <span>{{ i18n.t('nav_account') }}</span> }
-    </a>
-@if (auth.currentUser()?.role === 'admin' || auth.currentUser()?.role === 'hr') {
+    @if (!layout.isSidebarCollapsed() || layout.isMobileSidebarOpen()) { <div class="nav-section-label management-label">{{ i18n.t('nav_section_management') }}</div> }
+
+    @if (auth.currentUser()?.role === 'admin' || auth.currentUser()?.role === 'hr') {
   <a routerLink="/recruitment" routerLinkActive="active" class="nav-item" (click)="onNavItemClick()">
     <lucide-icon [img]="RecruitmentIcon" [size]="19" />
-    @if (!layout.isSidebarCollapsed()) { <span>{{ i18n.t('nav_recruitment') }}</span> }
+    @if (!layout.isSidebarCollapsed() || layout.isMobileSidebarOpen()) { <span>{{ i18n.t('nav_recruitment') }}</span> }
   </a>
 }
 
 @if (auth.isAdmin()) {
   <a routerLink="/admin" routerLinkActive="active" class="nav-item" (click)="onNavItemClick()">
     <lucide-icon [img]="AdminIcon" [size]="19" />
-    @if (!layout.isSidebarCollapsed()) { <span>{{ i18n.t('nav_admin') }}</span> }
+    @if (!layout.isSidebarCollapsed() || layout.isMobileSidebarOpen()) { <span>{{ i18n.t('nav_admin') }}</span> }
   </a>
 }
   </nav>
 
-  <button (click)="logout()" class="nav-item logout-btn">
-    <lucide-icon [img]="LogoutIcon" [size]="19" />
-    @if (!layout.isSidebarCollapsed()) { <span>{{ i18n.t('nav_logout') }}</span> }
-  </button>
+  <div class="sidebar-footer">
+    <a routerLink="/account" routerLinkActive="active" class="nav-item" (click)="onNavItemClick()">
+      <lucide-icon [img]="AccountIcon" [size]="18" />
+      @if (!layout.isSidebarCollapsed() || layout.isMobileSidebarOpen()) { <span>{{ i18n.t('nav_account') }}</span> }
+    </a>
+    <button (click)="logout()" class="nav-item logout-btn">
+      <lucide-icon [img]="LogoutIcon" [size]="18" />
+      @if (!layout.isSidebarCollapsed() || layout.isMobileSidebarOpen()) { <span>{{ i18n.t('nav_logout') }}</span> }
+    </button>
+    @if (!layout.isSidebarCollapsed() || layout.isMobileSidebarOpen()) {
+      <div class="sidebar-meta"><span>© 2024 Qadra Tech</span><span>v2.4.1</span></div>
+    }
+  </div>
 </aside>
 
 @if (layout.isMobileSidebarOpen()) {

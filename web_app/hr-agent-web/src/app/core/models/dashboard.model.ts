@@ -6,6 +6,7 @@ export interface TopUserEntry {
 export interface DashboardStats {
   employee_count: number;
   admin_count: number;
+  hr_count: number;
   total_users: number;
   pending_leaves: number;
   approved_leaves: number;

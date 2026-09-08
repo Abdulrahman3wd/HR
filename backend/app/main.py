@@ -21,6 +21,7 @@ from app.routers import (
     leave_routes,
     admin_leave_routes,
     admin_stats_routes,
+    dashboard_routes,
     notification_routes,
     admin_departments_routes,
     attendance_routes,
@@ -55,6 +56,7 @@ app.include_router(admin_chat_logs_routes.router)
 app.include_router(leave_routes.router)
 app.include_router(admin_leave_routes.router)
 app.include_router(admin_stats_routes.router)
+app.include_router(dashboard_routes.router)
 app.include_router(notification_routes.router)
 app.include_router(admin_departments_routes.router)
 app.include_router(attendance_routes.router)

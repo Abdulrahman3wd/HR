@@ -37,3 +37,16 @@
 .lang-divider {
   color: var(--color-text-muted);
 }
+
+:host-context(.sidebar) .lang-toggle-btn {
+  color: #cbd5e1;
+}
+
+:host-context(.sidebar) .lang-toggle-btn:hover,
+:host-context(.sidebar) .lang-toggle-btn .lang-label.active {
+  color: #f8fafc;
+}
+
+:host-context(.sidebar) .lang-toggle-btn .lang-divider {
+  color: #64748b;
+}

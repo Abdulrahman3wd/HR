@@ -8,6 +8,6 @@ export class DashboardService {
   private readonly http = inject(HttpClient);
 
   getStats() {
-    return this.http.get<DashboardStats>(`${environment.apiUrl}/admin/stats`);
+    return this.http.get<DashboardStats>(`${environment.apiUrl}/dashboard/stats`);
   }
 }

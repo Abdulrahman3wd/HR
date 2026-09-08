@@ -1,4 +1,4 @@
-import { Component, inject, computed } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import {
   LucideAngularModule,
@@ -9,20 +9,21 @@ import {
   LayoutDashboard,
   ShieldCheck,
   LogOut,
-  PanelLeftClose,
-  PanelLeftOpen,
   Users2,
   TrendingUp,
   Briefcase,
   Clock3,
+  Search,
 } from 'lucide-angular';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { LayoutService } from '../../core/services/layout.service';
+import { ThemeToggle } from '../../shared/components/theme-toggle/theme-toggle';
+import { LangToggle } from '../../shared/components/lang-toggle/lang-toggle';
 
 @Component({
   selector: 'app-sidebar',
-  imports: [RouterLink, RouterLinkActive, LucideAngularModule],
+  imports: [RouterLink, RouterLinkActive, LucideAngularModule, ThemeToggle, LangToggle],
   templateUrl: './sidebar.html',
   styleUrl: './sidebar.css',
 })
@@ -40,16 +41,8 @@ export class Sidebar {
   protected readonly LogoutIcon = LogOut;
   protected readonly KpiIcon = TrendingUp;
   protected readonly RecruitmentIcon = Briefcase;
-  protected readonly LatePermissionIcon = Clock3;
-protected readonly toggleIcon = computed(() => {
-  const isRtl = this.i18n.lang() === 'ar';
-  const collapsed = this.layout.isSidebarCollapsed();
-  // In RTL, the "collapse" direction is visually mirrored
-  if (isRtl) {
-    return collapsed ? PanelLeftClose : PanelLeftOpen;
-  }
-  return collapsed ? PanelLeftOpen : PanelLeftClose;
-});
+    protected readonly LatePermissionIcon = Clock3;
+    protected readonly SearchIcon = Search;
   protected logout(): void {
     this.auth.logout();
   }

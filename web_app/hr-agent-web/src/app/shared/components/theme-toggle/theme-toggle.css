@@ -53,3 +53,18 @@
   transform: rotate(90deg) scale(0.4);
   pointer-events: none;
 }
+
+:host-context(.sidebar) .theme-toggle-btn {
+  background-color: #26344d;
+  color: #f8fafc;
+  border: 1px solid rgba(248, 250, 252, 0.22);
+}
+
+:host-context(.sidebar) .theme-toggle-btn:hover {
+  background-color: #334155;
+}
+
+:host-context(.sidebar) .icon-wrapper {
+  background-color: #f8fafc;
+  color: #0f172a;
+}

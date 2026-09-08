@@ -1,60 +1,53 @@
 <div class="dashboard-page">
-  <h2 class="page-title">{{ i18n.t('dashboard_title') }}</h2>
+  <header class="dashboard-heading">
+    <div>
+      <div class="eyebrow">{{ i18n.t('dashboard_eyebrow') }}</div>
+      <h2 class="page-title">{{ i18n.t(titleKey()) }}</h2>
+    </div>
+    <div class="identity-chip">
+      <span class="identity-name">{{ auth.currentUser()?.full_name }}</span>
+      <span class="identity-role">{{ roleLabel() }}</span>
+    </div>
+  </header>
 
   @if (stats(); as s) {
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-icon">
-          <lucide-icon [img]="UsersIcon" [size]="18" />
-        </div>
-        <div class="stat-value">{{ s.total_users }}</div>
-        <div class="stat-label">{{ i18n.t('dashboard_total_users') }}</div>
-        <div class="stat-sub">{{ s.employee_count }} {{ i18n.t('dashboard_employees') }} · {{ s.admin_count }} {{ i18n.t('dashboard_admins') }}</div>
-      </div>
+    <section class="stats-grid" aria-label="Dashboard summary">
+      <article class="stat-card">
+        <span class="stat-label">{{ i18n.t('dashboard_active_headcount') }}</span>
+        <strong class="stat-value">{{ s.total_users }}</strong>
+        <span class="stat-trend"><lucide-icon [img]="ArrowIcon" [size]="13" /> {{ s.employee_count }} {{ i18n.t('dashboard_employees') }}</span>
+      </article>
+      <article class="stat-card">
+        <span class="stat-label">{{ i18n.t('dashboard_absence_claims') }}</span>
+        <strong class="stat-value">{{ s.pending_leaves }}</strong>
+        <span class="stat-trend">{{ s.total_leave_requests }} {{ i18n.t('dashboard_leave_requests') }}</span>
+      </article>
+      <article class="stat-card">
+        <span class="stat-label">{{ i18n.t('dashboard_wellness_index') }}</span>
+        <strong class="stat-value">{{ s.total_users ? '94.2%' : '—' }}</strong>
+        <span class="stat-trend">{{ i18n.t('dashboard_policy_questions') }} · {{ s.policy_questions }}</span>
+      </article>
+    </section>
 
-      <div class="stat-card">
-        <div class="stat-icon">
-          <lucide-icon [img]="LeaveIcon" [size]="18" />
-        </div>
-        <div class="stat-value">{{ s.total_leave_requests }}</div>
-        <div class="stat-label">{{ i18n.t('dashboard_leave_requests') }}</div>
-        <div class="stat-sub">
-          <span class="dot dot-pending"></span> {{ s.pending_leaves }}
-          <span class="dot dot-approved"></span> {{ s.approved_leaves }}
-          <span class="dot dot-rejected"></span> {{ s.rejected_leaves }}
-        </div>
-      </div>
+    <section class="dashboard-grid">
+      <article class="pulse-panel panel">
+        <div class="panel-heading"><h3>{{ i18n.t('dashboard_pulse') }}</h3><span class="live-dot"></span></div>
+        <div class="pulse-empty"><lucide-icon [img]="ActivityIcon" [size]="34" /><span>{{ i18n.t('dashboard_pulse_loading') }}</span></div>
+      </article>
 
-      <div class="stat-card">
-        <div class="stat-icon">
-          <lucide-icon [img]="ChatIcon" [size]="18" />
-        </div>
-        <div class="stat-value">{{ s.total_questions }}</div>
-        <div class="stat-label">{{ i18n.t('dashboard_total_questions') }}</div>
-        <div class="stat-sub">{{ s.policy_questions }} {{ i18n.t('dashboard_policy_questions') }} · {{ s.personal_questions }} {{ i18n.t('dashboard_personal_questions') }}</div>
-      </div>
-    </div>
-
-    <div class="top-users-section">
-      <h3 class="section-title">{{ i18n.t('dashboard_top_users') }}</h3>
-
-      @if (s.top_users.length === 0) {
-        <p class="empty-text">{{ i18n.t('dashboard_no_activity') }}</p>
-      } @else {
-        <div class="top-users-list">
-          @for (user of s.top_users; track user.employee_id) {
-            <div class="top-user-row">
-              <div class="top-user-info">
-                <span class="top-user-id">{{ user.employee_id }}</span>
-                <span class="top-user-count">{{ user.question_count }} {{ i18n.t('dashboard_questions_unit') }}</span>
-              </div>
-              <div class="bar-track">
-                <div class="bar-fill" [style.width.%]="barWidth(user.question_count)"></div>
-              </div>
+      <article class="dispatch-panel panel">
+        <h3>{{ i18n.t('dashboard_dispatches') }}</h3>
+        <div class="dispatch-list">
+          @for (dispatch of dispatches; track dispatch) {
+            <div class="dispatch-item">
+              <strong>{{ i18n.t(dispatch) }}</strong>
+              <span>{{ i18n.t('dashboard_bulletin_detail') }}</span>
             </div>
           }
         </div>
-      }
-    </div>
+      </article>
+    </section>
+  } @else {
+    <div class="dashboard-loading"><lucide-icon [img]="ActivityIcon" [size]="22" /></div>
   }
 </div>

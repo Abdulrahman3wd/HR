@@ -16,6 +16,15 @@ export class LayoutService {
     this.isMobileSidebarOpen.update((v) => !v);
   }
 
+  toggleSidebar(): void {
+    if (window.matchMedia('(max-width: 900px)').matches) {
+      this.toggleMobileSidebar();
+      return;
+    }
+
+    this.toggleCollapse();
+  }
+
   closeMobileSidebar(): void {
     this.isMobileSidebarOpen.set(false);
   }

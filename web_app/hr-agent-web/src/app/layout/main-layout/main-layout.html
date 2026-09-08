@@ -8,10 +8,31 @@
           <lucide-icon [img]="MenuIcon" [size]="20" />
         </button>
 
+        <div class="breadcrumb">
+          <span>{{ i18n.lang() === 'ar' ? 'مساحة العمل' : 'Workspace' }}</span>
+          <span class="breadcrumb-divider">/</span>
+          <span>{{ roleLabel() }}</span>
+        </div>
+
+        <label class="topbar-search navbar-search">
+          <lucide-icon [img]="SearchIcon" [size]="14" />
+          <input [placeholder]="i18n.lang() === 'ar' ? 'ابحث في النظام...' : 'Search console...'" />
+        </label>
+
         <div class="topbar-spacer"></div>
 
-        <app-theme-toggle />
-        <app-lang-toggle />
+        <div class="navbar-controls">
+          <app-lang-toggle />
+          <app-theme-toggle />
+        </div>
+
+        <div class="topbar-user">
+          <div class="topbar-user-copy">
+            <strong>{{ auth.currentUser()?.full_name }}</strong>
+            <span>{{ roleLabel() }}</span>
+          </div>
+          <div class="avatar">{{ (auth.currentUser()?.full_name ?? 'U').charAt(0).toUpperCase() }}</div>
+        </div>
       </div>
 
       <div class="content-scroll">

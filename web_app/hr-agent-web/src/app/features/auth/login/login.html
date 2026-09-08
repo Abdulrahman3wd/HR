@@ -1,59 +1,102 @@
-<div class="login-page">
-  <div class="top-controls">
-    <app-theme-toggle />
-    <app-lang-toggle />
-  </div>
-
-  <div class="login-card">
-    <div class="login-logo">
-      <span class="logo-dot"></span>
+<div class="auth-page">
+  <!-- Left panel: branding -->
+  <div class="brand-panel">
+    <div class="brand-logo">
+      <div class="logo-mark">
+        <span class="logo-square"></span>
+      </div>
+      <div class="logo-text">
+        <span class="logo-name">QADRA</span>
+        <span class="logo-name-ar">قدرة</span>
+      </div>
     </div>
 
-    <h1 class="login-title">{{ i18n.t('login_title') }}</h1>
-    <p class="login-subtitle">{{ i18n.t('login_subtitle') }}</p>
+    <div class="brand-content">
+      <span class="brand-badge">{{ i18n.t('login_enterprise_badge') }}</span>
+      <h1 class="brand-title">{{ i18n.t('login_tagline_title') }}</h1>
+      <p class="brand-subtitle">{{ i18n.t('login_tagline_subtitle') }}</p>
+    </div>
 
-    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="login-form">
-      <div class="input-group">
-        <lucide-icon [img]="BuildingIcon" [size]="18" class="input-icon" />
-        <input
-          type="text"
-          formControlName="company_code"
-          [placeholder]="i18n.t('login_company_code')"
-          class="input-field"
-        />
-      </div>
+    <div class="brand-footer">
+      <span>&copy; 2026 {{ i18n.t('login_copyright') }}</span>
+      <span class="version-tag">v2.4.1</span>
+    </div>
+  </div>
 
-      <div class="input-group">
-        <lucide-icon [img]="UserIcon" [size]="18" class="input-icon" />
-        <input
-          type="text"
-          formControlName="employee_id"
-          [placeholder]="i18n.t('login_employee_id')"
-          class="input-field"
-        />
-      </div>
+  <!-- Right panel: form -->
+  <div class="form-panel">
+    <div class="form-wrapper">
+      <h2 class="form-title">{{ i18n.t('login_title') }}</h2>
+      <p class="form-subtitle">{{ i18n.t('login_subtitle') }}</p>
 
-      <div class="input-group">
-        <lucide-icon [img]="LockIcon" [size]="18" class="input-icon" />
-        <input
-          type="password"
-          formControlName="password"
-          [placeholder]="i18n.t('login_password')"
-          class="input-field"
-        />
-      </div>
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="auth-form">
+        @if (errorMessage()) {
+          <div class="error-banner">
+            <lucide-icon [img]="AlertIcon" [size]="16" />
+            <span>{{ errorMessage() }}</span>
+          </div>
+        }
 
-      @if (errorMessage()) {
-        <div class="error-box">{{ errorMessage() }}</div>
-      }
+        <div class="field-group">
+          <label class="field-label">{{ i18n.t('login_company_code') }} <span class="required-mark">*</span></label>
+          <input
+            type="text"
+            formControlName="company_code"
+            [placeholder]="'e.g. ACME-CORP'"
+            class="auth-input"
+            [class.input-error]="errorMessage()"
+            [disabled]="isLoading()"
+          />
+        </div>
 
-      <button type="submit" class="submit-btn" [disabled]="isLoading()">
-        {{ isLoading() ? i18n.t('login_loading') : i18n.t('login_button') }}
-      </button>
-    </form>
-    <p class="signup-hint">
-  {{ i18n.t('login_no_account') }}
-  <a routerLink="/signup" class="signup-link">{{ i18n.t('login_signup_link') }}</a>
-</p>
+        <div class="field-group">
+          <label class="field-label">{{ i18n.t('login_employee_id') }} <span class="required-mark">*</span></label>
+          <input
+            type="text"
+            formControlName="employee_id"
+            [placeholder]="'e.g. EMP-1049'"
+            class="auth-input"
+            [class.input-error]="errorMessage()"
+            [disabled]="isLoading()"
+          />
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">{{ i18n.t('login_password') }} <span class="required-mark">*</span></label>
+          <div class="password-field">
+            <input
+              [type]="showPassword() ? 'text' : 'password'"
+              formControlName="password"
+              placeholder="••••••••"
+              class="auth-input"
+              [class.input-error]="errorMessage()"
+              [disabled]="isLoading()"
+            />
+            <button type="button" class="password-toggle" (click)="togglePasswordVisibility()" tabindex="-1">
+              <lucide-icon [img]="showPassword() ? EyeOffIcon : EyeIcon" [size]="17" />
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="submit-btn" [disabled]="isLoading()">
+          @if (isLoading()) {
+            <lucide-icon [img]="LoaderIcon" [size]="17" class="spin-icon" />
+            <span>{{ i18n.t('login_loading') }}</span>
+          } @else {
+            <span>{{ i18n.t('login_button') }}</span>
+          }
+        </button>
+
+        <p class="signup-hint">
+          {{ i18n.t('login_no_account') }}
+          <a routerLink="/signup" class="signup-link">{{ i18n.t('login_signup_link') }}</a>
+        </p>
+      </form>
+    </div>
+
+    <div class="form-footer">
+      <app-lang-toggle />
+      <app-theme-toggle />
+    </div>
   </div>
 </div>

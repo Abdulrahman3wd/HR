@@ -1,63 +1,89 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
+
+@font-face {
+  font-family: 'MonasabatSahabatMatar';
+  src: url('/assets/fonts/monasabatsahabatmatar-v2.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
 
 /* ---------- Design Tokens (Light theme - default) ---------- */
 :root {
-  --color-bg-base: #F7F8FA;
+  --color-bg-base: #F8FAFC;
   --color-bg-surface: #FFFFFF;
-  --color-bg-muted: #EDEEF2;
+  --color-bg-muted: #E2E8F0;
 
-  --color-text-primary: #1B1C22;
-  --color-text-secondary: #7E7B8A;
-  --color-text-muted: #A6A8B4;
+  --color-text-primary: #0F172A;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94A3B8;
 
-  --color-border: #E3E4E9;
+  --color-border: #E2E8F0;
 
-  --color-primary: #1B1C22;
-  --color-primary-hover: #33343D;
-  --color-primary-subtle: #EDEEF2;
+  --color-primary: #0F172A;
+  --color-primary-hover: #1E293B;
+  --color-primary-subtle: #E2E8F0;
   --color-primary-text: #FFFFFF;
 
+  --color-accent: #F59E0B;
+  --color-accent-hover: #D97706;
+  --color-accent-text: #FFFFFF;
+
   --color-success: #16A34A;
-  --color-warning: #EAB308;
+  --color-warning: #F59E0B;
   --color-danger: #DC2626;
 
-  --color-sidebar-bg: #1B1C22;
-  --color-sidebar-text: #A6A8B4;
+  --color-sidebar-bg: #0F172A;
+  --color-sidebar-text: #94A3B8;
   --color-sidebar-text-active: #FFFFFF;
   --color-sidebar-hover: rgba(255,255,255,0.06);
+
+  --color-panel-bg: #0F172A;
 }
 
 /* ---------- Design Tokens (Dark theme) ---------- */
 .dark {
-  --color-bg-base: #1B1C22;
-  --color-bg-surface: #24252D;
-  --color-bg-muted: #2C2D36;
+  --color-bg-base: #020617;
+  --color-bg-surface: #0F172A;
+  --color-bg-muted: #1E293B;
 
-  --color-text-primary: #F7F8FA;
-  --color-text-secondary: #A6A8B4;
-  --color-text-muted: #7E7B8A;
+  --color-text-primary: #F8FAFC;
+  --color-text-secondary: #94A3B8;
+  --color-text-muted: #475569;
 
-  --color-border: #34353F;
+  --color-border: #334155;
 
-  --color-primary: #F7F8FA;
-  --color-primary-hover: #D8D9DE;
-  --color-primary-subtle: #2C2D36;
-  --color-primary-text: #1B1C22;
+  --color-primary: #F8FAFC;
+  --color-primary-hover: #E2E8F0;
+  --color-primary-subtle: #1E293B;
+  --color-primary-text: #0F172A;
+
+  --color-accent: #F59E0B;
+  --color-accent-hover: #FBBF24;
+  --color-accent-text: #0F172A;
 
   --color-success: #4ADE80;
-  --color-warning: #FACC15;
+  --color-warning: #FBBF24;
   --color-danger: #F87171;
 
-  --color-sidebar-bg: #121317;
-  --color-sidebar-text: #8B8DA0;
+  --color-sidebar-bg: #090D16;
+  --color-sidebar-text: #94A3B8;
   --color-sidebar-text-active: #FFFFFF;
   --color-sidebar-hover: rgba(255,255,255,0.05);
+
+  --color-panel-bg: #090D16;
 }
 
 body {
   background-color: var(--color-bg-base);
   color: var(--color-text-primary);
   transition: background-color 0.2s ease, color 0.2s ease;
+  font-family: 'Inter', 'Segoe UI', Tahoma, Arial, sans-serif;
+}
+
+html[lang='ar'] body {
+  font-family: 'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, Arial, sans-serif;
 }
 
 /* ---------- Tailwind theme mapping ---------- */
@@ -77,6 +103,10 @@ body {
   --color-primary-subtle: var(--color-primary-subtle);
   --color-primary-text: var(--color-primary-text);
 
+  --color-accent: var(--color-accent);
+  --color-accent-hover: var(--color-accent-hover);
+  --color-accent-text: var(--color-accent-text);
+
   --color-success: var(--color-success);
   --color-warning: var(--color-warning);
   --color-danger: var(--color-danger);
@@ -85,4 +115,6 @@ body {
   --color-sidebar-text: var(--color-sidebar-text);
   --color-sidebar-text-active: var(--color-sidebar-text-active);
   --color-sidebar-hover: var(--color-sidebar-hover);
+
+  --color-panel-bg: var(--color-panel-bg);
 }

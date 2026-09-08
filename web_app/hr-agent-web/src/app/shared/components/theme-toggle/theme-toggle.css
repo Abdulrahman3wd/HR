@@ -1,9 +1,11 @@
 .theme-toggle-btn {
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 2.75rem;
+  height: 1.5rem;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  direction: ltr;
+  padding: 0.15rem;
   border-radius: 9999px;
   background-color: var(--color-bg-muted);
   color: var(--color-text-primary);
@@ -16,10 +18,25 @@
   background-color: var(--color-border);
 }
 
+.theme-toggle-btn.is-dark {
+  justify-content: flex-start;
+}
+
 .icon-wrapper {
   position: relative;
-  width: 18px;
-  height: 18px;
+  width: 1.2rem;
+  height: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--color-bg-surface);
+  transition: transform 0.25s ease;
+  will-change: transform;
+}
+
+.theme-toggle-btn.is-dark .icon-wrapper {
+  transform: translateX(calc(2.75rem - 1.2rem - 0.3rem));
 }
 
 .icon {

@@ -1,27 +1,39 @@
 .lang-toggle-btn {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0 0.9rem;
-  height: 2.5rem;
-  border-radius: 9999px;
-  background-color: var(--color-bg-muted);
-  color: var(--color-text-primary);
-  font-size: 0.875rem;
-  font-weight: 500;
-  border: none;
+  gap: 0.35rem;
+  padding: 0;
+  height: 1.5rem;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 0.72rem;
+  font-weight: 400;
+  border: 0;
   cursor: pointer;
-  transition: background-color 0.25s ease, transform 0.15s ease;
+  transition: color 0.2s ease;
 }
 
 .lang-toggle-btn:hover {
-  background-color: var(--color-border);
+  color: var(--color-text-primary);
 }
 
 .lang-toggle-btn:active {
-  transform: scale(0.95);
+  transform: none;
 }
 
 .lang-label {
-  transition: opacity 0.2s ease;
+  transition: color 0.2s ease;
+}
+
+.lang-label.active {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.lang-label-ar {
+  font-family: 'IBM Plex Sans Arabic', sans-serif;
+}
+
+.lang-divider {
+  color: var(--color-text-muted);
 }

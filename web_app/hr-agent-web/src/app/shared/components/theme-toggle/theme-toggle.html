@@ -1,6 +1,7 @@
 <button
   (click)="theme.toggle()"
   class="theme-toggle-btn"
+  [class.is-dark]="theme.theme() === 'dark'"
   [attr.aria-label]="'Toggle theme'"
 >
   <span class="icon-wrapper">

@@ -1,72 +1,135 @@
-<div class="signup-page">
-  <div class="top-controls">
-    <app-theme-toggle />
+<div class="register-page">
+  <header class="brand-header">
+    <div class="brand-logo">
+      <div class="logo-mark"><span class="logo-square"></span></div>
+      <div class="logo-text">
+        <span class="logo-name">QADRA</span>
+        <span class="logo-name-ar">قدرة</span>
+      </div>
+    </div>
+    <div class="header-caption">
+      <span>{{ i18n.t('login_enterprise_badge') }}</span>
+      <small>{{ i18n.t('login_tagline_title') }}</small>
+    </div>
+  </header>
+
+  <main class="register-main">
+    <section class="brand-panel">
+      <div class="brand-logo">
+        <div class="logo-mark"><span class="logo-square"></span></div>
+        <div class="logo-text">
+          <span class="logo-name">QADRA</span>
+          <span class="logo-name-ar">قدرة</span>
+        </div>
+      </div>
+
+      <div class="brand-content">
+        <span class="brand-badge">{{ i18n.t('login_enterprise_badge') }}</span>
+        <h2 class="brand-title">{{ i18n.t('login_tagline_title') }}</h2>
+        <p class="brand-subtitle">{{ i18n.t('login_tagline_subtitle') }}</p>
+      </div>
+
+      <div class="brand-footer">
+        <span>&copy; 2024 {{ i18n.t('login_copyright') }}</span>
+        <span>v2.4.1</span>
+      </div>
+    </section>
+
+    <section class="register-panel">
+      @if (!isSuccess()) {
+        <div class="register-card">
+          <h1 class="register-title">{{ i18n.t('signup_title') }}</h1>
+          <p class="register-subtitle">{{ i18n.t('signup_subtitle') }}</p>
+
+          <form [formGroup]="form" (ngSubmit)="onSubmit()" class="register-form" novalidate>
+            @if (errorMessage()) {
+              <div class="error-banner">
+                <lucide-icon [img]="AlertIcon" [size]="15" />
+                <span>{{ errorMessage() }}</span>
+              </div>
+            } @else if (form.invalid && form.touched) {
+              <div class="error-banner">
+                <lucide-icon [img]="AlertIcon" [size]="15" />
+                <span>{{ i18n.t('signup_error_fix') }}</span>
+              </div>
+            }
+
+            <div class="section-heading">
+              <span>01. {{ i18n.t('signup_company_section') }}</span>
+              <i></i>
+            </div>
+
+            <div class="field-group">
+              <label for="company-name">{{ i18n.t('signup_company_name') }} <b>*</b></label>
+              <input id="company-name" type="text" formControlName="company_name" class="register-input" placeholder="e.g. Acme Corporation" [class.input-error]="hasError('company_name')" [disabled]="isLoading()" />
+              @if (errorFor('company_name')) { <p class="field-error">{{ errorFor('company_name') }}</p> }
+            </div>
+
+            <div class="field-group">
+              <label for="company-code">{{ i18n.t('signup_company_code') }} <b>*</b></label>
+              <input id="company-code" type="text" formControlName="company_code" class="register-input" placeholder="e.g. ACME-CORP" [class.input-error]="hasError('company_code')" [disabled]="isLoading()" />
+              @if (errorFor('company_code')) {
+                <p class="field-error">{{ errorFor('company_code') }}</p>
+              } @else {
+                <p class="field-hint">{{ i18n.t('signup_company_code_hint') }}</p>
+              }
+            </div>
+
+            <div class="section-heading admin-heading">
+              <span>02. {{ i18n.t('signup_admin_section') }}</span>
+              <i></i>
+            </div>
+
+            <div class="field-group">
+              <label for="admin-name">{{ i18n.t('signup_admin_name') }} <b>*</b></label>
+              <input id="admin-name" type="text" formControlName="admin_full_name" class="register-input" placeholder="e.g. Sarah Connor" [class.input-error]="hasError('admin_full_name')" [disabled]="isLoading()" />
+              @if (errorFor('admin_full_name')) { <p class="field-error">{{ errorFor('admin_full_name') }}</p> }
+            </div>
+
+            <div class="field-group">
+              <label for="admin-id">{{ i18n.t('signup_admin_id') }} <b>*</b></label>
+              <input id="admin-id" type="text" formControlName="admin_employee_id" class="register-input" placeholder="e.g. EMP-001" [class.input-error]="hasError('admin_employee_id')" [disabled]="isLoading()" />
+              @if (errorFor('admin_employee_id')) { <p class="field-error">{{ errorFor('admin_employee_id') }}</p> }
+            </div>
+
+            <div class="field-group">
+              <label for="admin-password">{{ i18n.t('signup_admin_password') }} <b>*</b></label>
+              <div class="password-field">
+                <input id="admin-password" [type]="showPassword() ? 'text' : 'password'" formControlName="admin_password" class="register-input" placeholder="••••••••" [class.input-error]="hasError('admin_password')" [disabled]="isLoading()" />
+                <button type="button" class="password-toggle" (click)="togglePasswordVisibility()" tabindex="-1" [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'">
+                  <lucide-icon [img]="showPassword() ? EyeOffIcon : EyeIcon" [size]="17" />
+                </button>
+              </div>
+              @if (errorFor('admin_password')) { <p class="field-error">{{ errorFor('admin_password') }}</p> }
+            </div>
+
+            <button type="submit" class="submit-btn" [disabled]="isLoading()">
+              @if (isLoading()) {
+                <lucide-icon [img]="LoaderIcon" [size]="15" class="spin-icon" />
+                <span>{{ i18n.t('signup_loading') }}</span>
+              } @else {
+                <span>{{ i18n.t('signup_button') }}</span>
+              }
+            </button>
+          </form>
+
+          <p class="login-hint">{{ i18n.t('signup_have_account') }} <a routerLink="/login">{{ i18n.t('signup_login_link') }}</a></p>
+        </div>
+      } @else {
+        <div class="register-card success-card">
+          <div class="success-icon"><lucide-icon [img]="SuccessIcon" [size]="25" /></div>
+          <h1 class="register-title">{{ i18n.t('signup_success_title') }}</h1>
+          <p class="success-message">{{ i18n.t('signup_success_message') }}</p>
+          <div class="code-display">{{ registeredCompanyCode() }}</div>
+          <p class="success-share">{{ i18n.t('signup_success_share') }}</p>
+          <button class="submit-btn" (click)="goToLogin()">{{ i18n.t('signup_go_to_login') }}</button>
+        </div>
+      }
+    </section>
+  </main>
+
+  <footer class="register-footer">
     <app-lang-toggle />
-  </div>
-
-  @if (!isSuccess()) {
-    <div class="signup-card">
-      <div class="signup-logo">
-        <span class="logo-dot"></span>
-      </div>
-
-      <h1 class="signup-title">{{ i18n.t('signup_title') }}</h1>
-      <p class="signup-subtitle">{{ i18n.t('signup_subtitle') }}</p>
-
-      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="signup-form">
-        <div class="input-group">
-          <lucide-icon [img]="BuildingIcon" [size]="18" class="input-icon" />
-          <input type="text" formControlName="company_name" [placeholder]="i18n.t('signup_company_name')" class="input-field" />
-        </div>
-
-        <div class="input-group">
-          <lucide-icon [img]="IdIcon" [size]="18" class="input-icon" />
-          <input type="text" formControlName="company_code" [placeholder]="i18n.t('signup_company_code')" class="input-field" />
-        </div>
-        <p class="field-hint">{{ i18n.t('signup_company_code_hint') }}</p>
-
-        <div class="input-group">
-          <lucide-icon [img]="UserIcon" [size]="18" class="input-icon" />
-          <input type="text" formControlName="admin_full_name" [placeholder]="i18n.t('signup_admin_name')" class="input-field" />
-        </div>
-
-        <div class="input-group">
-          <lucide-icon [img]="IdIcon" [size]="18" class="input-icon" />
-          <input type="text" formControlName="admin_employee_id" [placeholder]="i18n.t('signup_admin_id')" class="input-field" />
-        </div>
-
-        <div class="input-group">
-          <lucide-icon [img]="LockIcon" [size]="18" class="input-icon" />
-          <input type="password" formControlName="admin_password" [placeholder]="i18n.t('signup_admin_password')" class="input-field" />
-        </div>
-
-        @if (errorMessage()) {
-          <div class="error-box">{{ errorMessage() }}</div>
-        }
-
-        <button type="submit" class="submit-btn" [disabled]="isLoading()">
-          {{ isLoading() ? i18n.t('signup_loading') : i18n.t('signup_button') }}
-        </button>
-      </form>
-
-      <p class="login-hint">
-        {{ i18n.t('signup_have_account') }}
-        <a routerLink="/login" class="login-link">{{ i18n.t('signup_login_link') }}</a>
-      </p>
-    </div>
-  } @else {
-    <div class="signup-card success-card">
-      <div class="success-icon">
-        <lucide-icon [img]="SuccessIcon" [size]="32" />
-      </div>
-      <h1 class="signup-title">{{ i18n.t('signup_success_title') }}</h1>
-      <p class="signup-subtitle">{{ i18n.t('signup_success_subtitle') }}</p>
-
-      <div class="code-display">{{ registeredCompanyCode() }}</div>
-
-      <button class="submit-btn" (click)="goToLogin()">
-        {{ i18n.t('signup_go_to_login') }}
-      </button>
-    </div>
-  }
+    <app-theme-toggle />
+  </footer>
 </div>

@@ -474,3 +474,55 @@ class PublicJobResponse(BaseModel):
 class PublicApplicationSubmitResponse(BaseModel):
     message: str
     candidate_id: int
+
+# ---------- Interview Scheduling ----------
+class InterviewScheduleCreate(BaseModel):
+    candidate_id: int
+    interview_type: str  # 'hr' | 'technical'
+    mode: str  # 'online' | 'offline'
+    duration_minutes: int
+    interview_date: str  # YYYY-MM-DD
+    window_start_time: str  # HH:MM
+    window_end_time: str  # HH:MM
+
+
+class InterviewScheduleRecord(BaseModel):
+    id: int
+    company_id: int
+    candidate_id: int
+    job_opening_id: int
+    interview_type: str
+    mode: str
+    duration_minutes: int
+    interview_date: str
+    window_start_time: str
+    window_end_time: str
+    booked_slot_time: str | None
+    attendance_status: str
+    created_by: str
+    created_at: str
+
+
+class InterviewScheduleListResponse(BaseModel):
+    schedules: list[InterviewScheduleRecord]
+
+
+class AttendanceUpdateRequest(BaseModel):
+    attendance_status: str  # 'scheduled' | 'attended' | 'no_show'
+
+
+# ---------- Public interview booking ----------
+class PublicInterviewInfo(BaseModel):
+    candidate_name: str
+    job_title: str
+    interview_type: str
+    mode: str
+    duration_minutes: int
+    interview_date: str
+    available_slots: list[str]
+    is_booked: bool
+    booked_slot_time: str | None
+
+
+class BookSlotRequest(BaseModel):
+    slot_time: str  # HH:MM

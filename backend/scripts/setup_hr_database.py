@@ -36,6 +36,8 @@ def main():
     cursor.execute("DROP TABLE IF EXISTS users")
     cursor.execute("DROP TABLE IF EXISTS departments")
     cursor.execute("DROP TABLE IF EXISTS companies")
+    cursor.execute("DROP TABLE IF EXISTS interview_schedules")
+    cursor.execute("DROP TABLE IF EXISTS candidates")
 
     cursor.execute("""
         CREATE TABLE companies (
@@ -191,6 +193,30 @@ def main():
             added_by TEXT,
             applied_at TEXT NOT NULL,
             FOREIGN KEY (company_id) REFERENCES companies(id),
+            FOREIGN KEY (job_opening_id) REFERENCES job_openings(id)
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE interview_schedules (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            company_id INTEGER NOT NULL,
+            candidate_id INTEGER NOT NULL,
+            job_opening_id INTEGER NOT NULL,
+            interview_type TEXT NOT NULL CHECK(interview_type IN ('hr', 'technical')),
+            mode TEXT NOT NULL CHECK(mode IN ('online', 'offline')),
+            duration_minutes INTEGER NOT NULL,
+            interview_date TEXT NOT NULL,
+            window_start_time TEXT NOT NULL,
+            window_end_time TEXT NOT NULL,
+            booked_slot_time TEXT,
+            attendance_status TEXT NOT NULL DEFAULT 'scheduled' CHECK(
+                attendance_status IN ('scheduled', 'attended', 'no_show')
+            ),
+            created_by TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (company_id) REFERENCES companies(id),
+            FOREIGN KEY (candidate_id) REFERENCES candidates(id),
             FOREIGN KEY (job_opening_id) REFERENCES job_openings(id)
         )
     """)

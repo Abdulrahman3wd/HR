@@ -1465,3 +1465,125 @@ def get_monthly_overtime_amount(company_id: int, employee_id: str, year: int, mo
         "total_minutes": total_minutes,
         "overtime_amount": overtime_amount,
     }
+
+    
+# ---------- Interview Scheduling ----------
+def create_interview_schedule(
+    company_id: int,
+    candidate_id: int,
+    job_opening_id: int,
+    interview_type: str,
+    mode: str,
+    duration_minutes: int,
+    interview_date: str,
+    window_start_time: str,
+    window_end_time: str,
+    created_by: str,
+) -> dict:
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        INSERT INTO interview_schedules
+        (company_id, candidate_id, job_opening_id, interview_type, mode, duration_minutes,
+         interview_date, window_start_time, window_end_time, attendance_status, created_by, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'scheduled', ?, datetime('now'))
+        """,
+        (company_id, candidate_id, job_opening_id, interview_type, mode, duration_minutes,
+         interview_date, window_start_time, window_end_time, created_by),
+    )
+    schedule_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return get_interview_schedule_by_id(schedule_id, company_id)
+
+
+def get_interview_schedule_by_id(schedule_id: int, company_id: int | None = None) -> dict | None:
+    conn = _get_connection()
+    cursor = conn.cursor()
+    if company_id is not None:
+        cursor.execute("SELECT * FROM interview_schedules WHERE id = ? AND company_id = ?", (schedule_id, company_id))
+    else:
+        cursor.execute("SELECT * FROM interview_schedules WHERE id = ?", (schedule_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def get_candidate_interview_schedules(company_id: int, candidate_id: int) -> list[dict]:
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT * FROM interview_schedules WHERE company_id = ? AND candidate_id = ? ORDER BY created_at DESC",
+        (company_id, candidate_id),
+    )
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def get_booked_slots_for_day(company_id: int, interview_type: str, interview_date: str) -> list[str]:
+    """
+    Returns all already-booked slot times across ALL schedules that share
+    the same interview_type + date — this is what makes slots shared
+    between different candidates' scheduling sessions for the same day.
+    """
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT booked_slot_time FROM interview_schedules "
+        "WHERE company_id = ? AND interview_type = ? AND interview_date = ? AND booked_slot_time IS NOT NULL",
+        (company_id, interview_type, interview_date),
+    )
+    rows = cursor.fetchall()
+    conn.close()
+    return [row["booked_slot_time"] for row in rows]
+
+
+def book_interview_slot(schedule_id: int, slot_time: str) -> dict | None:
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM interview_schedules WHERE id = ?", (schedule_id,))
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        return None
+
+    schedule = dict(row)
+    if schedule["booked_slot_time"]:
+        conn.close()
+        raise ValueError("This interview has already been booked")
+
+    # Double-check the slot isn't taken by another candidate's schedule
+    # for the same interview_type + date (race-condition safety)
+    booked = get_booked_slots_for_day(schedule["company_id"], schedule["interview_type"], schedule["interview_date"])
+    if slot_time in booked:
+        conn.close()
+        raise ValueError("This time slot is no longer available")
+
+    cursor.execute("UPDATE interview_schedules SET booked_slot_time = ? WHERE id = ?", (slot_time, schedule_id))
+    conn.commit()
+    conn.close()
+
+    # Move the candidate to the corresponding pipeline stage automatically
+    new_stage = "hr_interview" if schedule["interview_type"] == "hr" else "technical_interview"
+    update_candidate_stage(schedule["candidate_id"], schedule["company_id"], new_stage)
+
+    return get_interview_schedule_by_id(schedule_id)
+
+
+def update_interview_attendance(schedule_id: int, company_id: int, attendance_status: str) -> dict | None:
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT 1 FROM interview_schedules WHERE id = ? AND company_id = ?", (schedule_id, company_id))
+    if not cursor.fetchone():
+        conn.close()
+        return None
+
+    cursor.execute(
+        "UPDATE interview_schedules SET attendance_status = ? WHERE id = ? AND company_id = ?",
+        (attendance_status, schedule_id, company_id),
+    )
+    conn.commit()
+    conn.close()
+    return get_interview_schedule_by_id(schedule_id, company_id)

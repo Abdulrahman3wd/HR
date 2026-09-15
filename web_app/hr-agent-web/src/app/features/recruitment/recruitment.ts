@@ -3,6 +3,7 @@ import { ReactiveFormsModule, FormsModule, FormBuilder, Validators } from '@angu
 import { LucideAngularModule, Briefcase, Users, Plus, X, Upload, FileText, Pencil, Trash2, Check, Link2, Copy, CalendarClock, Mail } from 'lucide-angular';
 import { DragDropModule, CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { TranslationKey } from '../../core/services/translations';
+
 import { RecruitmentService } from '../../core/services/recruitment.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { JobOpening, Candidate, CandidateStage, CustomQuestion, QuestionType } from '../../core/models/recruitment.model';
@@ -31,7 +32,7 @@ export class Recruitment implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly recruitmentService = inject(RecruitmentService);
   protected readonly i18n = inject(I18nService);
-    private readonly interviewService = inject(InterviewService);
+  private readonly interviewService = inject(InterviewService);
   private readonly toast = inject(ToastService);
   private readonly confirmDialog = inject(ConfirmDialogService);
   protected readonly JobsIcon = Briefcase;
@@ -43,10 +44,19 @@ export class Recruitment implements OnInit {
   protected readonly EditIcon = Pencil;
   protected readonly DeleteIcon = Trash2;
   protected readonly SaveIcon = Check;
-    protected readonly LinkIcon = Link2;
+  protected readonly LinkIcon = Link2;
   protected readonly CopyIcon = Copy;
   protected readonly activeTab = signal<RecruitmentTab>('jobs');
   protected readonly stages = PIPELINE_STAGES;
+  protected readonly timeOptions: string[] = (() => {
+    const slots: string[] = [];
+    for (let h = 0; h < 24; h++) {
+      for (const m of [0, 30]) {
+        slots.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
+      }
+    }
+    return slots;
+  })();
   protected readonly ScheduleIcon = CalendarClock;
   protected readonly MailIcon = Mail;
   // ---------- Jobs state ----------
@@ -61,17 +71,18 @@ export class Recruitment implements OnInit {
     requirements: ['', Validators.required],
   });
   protected readonly schedulingCandidateId = signal<number | null>(null);
+    private currentCandidate: Candidate | null = null;
   protected readonly candidateSchedules = signal<InterviewScheduleRecord[]>([]);
   protected readonly isSendingSchedule = signal(false);
   protected readonly scheduleStatus = signal<{ type: 'success' | 'error'; text: string } | null>(null);
 
   protected readonly scheduleForm = this.fb.nonNullable.group({
-    interview_type: 'hr' as InterviewType,
-    mode: 'online' as InterviewMode,
-    duration_minutes: 30,
-    interview_date: '',
-    window_start_time: '',
-    window_end_time: '',
+    interview_type: this.fb.nonNullable.control<InterviewType>('hr'),
+    mode: this.fb.nonNullable.control<InterviewMode>('online'),
+    duration_minutes: this.fb.nonNullable.control(30, Validators.required),
+    interview_date: this.fb.nonNullable.control('', Validators.required),
+    window_start_time: this.fb.nonNullable.control('', Validators.required),
+    window_end_time: this.fb.nonNullable.control('', Validators.required),
   });
   // ---------- Pipeline state ----------
   protected readonly candidates = signal<Candidate[]>([]);
@@ -384,17 +395,24 @@ export class Recruitment implements OnInit {
       this.toast.success('Link copied successfully');
     });
   }
-    protected toggleScheduling(candidate: Candidate, event: Event): void {
+  protected toggleScheduling(candidate: Candidate, event: Event): void {
     event.stopPropagation();
-    const isOpening = this.schedulingCandidateId() !== candidate.id;
-    this.schedulingCandidateId.set(isOpening ? candidate.id : null);
+    this.currentCandidate = candidate;
+    this.schedulingCandidateId.set(candidate.id);
     this.scheduleStatus.set(null);
-
-    if (isOpening) {
-      this.loadCandidateSchedules(candidate.id);
-    }
+    this.loadCandidateSchedules(candidate.id);
   }
 
+  protected closeScheduling(): void {
+    this.schedulingCandidateId.set(null);
+    this.currentCandidate = null;
+  }
+
+  protected sendScheduleFromModal(event: Event): void {
+    if (this.currentCandidate) {
+      this.sendScheduleLink(this.currentCandidate, event);
+    }
+  }
   private loadCandidateSchedules(candidateId: number): void {
     this.interviewService.getCandidateSchedules(candidateId).subscribe({
       next: (data) => this.candidateSchedules.set(data.schedules),

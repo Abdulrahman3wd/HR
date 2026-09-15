@@ -15,6 +15,10 @@ export const routes: Routes = [
     path: 'apply/:jobId',
     loadComponent: () => import('./features/public-apply/public-apply').then((m) => m.PublicApply),
   },
+    {
+    path: 'book-interview/:scheduleId',
+    loadComponent: () => import('./features/book-interview/book-interview').then((m) => m.BookInterview),
+  },
   {
     path: '',
     canActivate: [authGuard],

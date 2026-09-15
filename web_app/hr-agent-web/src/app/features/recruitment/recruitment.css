@@ -661,6 +661,166 @@
   cursor: pointer;
   flex-shrink: 0;
 }
+.schedule-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  font-size: 0.72rem;
+  cursor: pointer;
+  margin-top: 0.5rem;
+}
+
+.schedule-toggle-btn:hover {
+  border-color: var(--color-primary);
+}
+
+.schedule-panel {
+  margin-top: 0.6rem;
+  padding: 0.7rem;
+  background-color: var(--color-bg-base);
+  border-radius: 0.6rem;
+  border: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.schedule-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.field-input-sm {
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.4rem;
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  font-size: 0.72rem;
+  outline: none;
+}
+
+.time-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.time-row .field-input-sm {
+  flex: 1;
+}
+
+.time-sep {
+  color: var(--color-text-secondary);
+  font-size: 0.7rem;
+}
+
+.status-msg-sm {
+  font-size: 0.68rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 0.4rem;
+}
+
+.status-msg-sm.status-success {
+  background-color: color-mix(in srgb, var(--color-success) 12%, transparent);
+  color: var(--color-success);
+}
+
+.status-msg-sm.status-error {
+  background-color: color-mix(in srgb, var(--color-danger) 12%, transparent);
+  color: var(--color-danger);
+}
+
+.send-schedule-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  border: none;
+  background-color: var(--color-primary);
+  color: var(--color-primary-text);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.send-schedule-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.schedules-history {
+  border-top: 1px solid var(--color-border);
+  padding-top: 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.history-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+}
+
+.schedule-item {
+  background-color: var(--color-bg-surface);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.7rem;
+}
+
+.schedule-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--color-text-primary);
+}
+
+.booking-badge {
+  padding: 0.1rem 0.4rem;
+  border-radius: 9999px;
+  font-size: 0.62rem;
+  font-weight: 600;
+}
+
+.badge-booked {
+  background-color: color-mix(in srgb, var(--color-success) 15%, transparent);
+  color: var(--color-success);
+}
+
+.badge-pending {
+  background-color: color-mix(in srgb, var(--color-warning) 15%, transparent);
+  color: color-mix(in srgb, var(--color-warning) 70%, black);
+}
+
+.schedule-item-meta {
+  color: var(--color-text-secondary);
+  margin-top: 0.25rem;
+}
+
+.attendance-row {
+  margin-top: 0.4rem;
+}
+
+.attendance-select {
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.4rem;
+  background-color: var(--color-bg-base);
+  color: var(--color-text-primary);
+  font-size: 0.68rem;
+  width: 100%;
+}
 /* ---------- Responsive ---------- */
 @media (max-width: 640px) {
   .recruitment-page {

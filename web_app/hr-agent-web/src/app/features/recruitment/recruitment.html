@@ -300,6 +300,104 @@
                               <option [value]="s">{{ stageLabel(s) }}</option>
                             }
                           </select>
+
+                          <button class="schedule-toggle-btn" (click)="toggleScheduling(candidate, $event)">
+                            <lucide-icon [img]="ScheduleIcon" [size]="13" />
+                            {{ i18n.t('interview_schedule_button') }}
+                          </button>
+
+                          @if (schedulingCandidateId() === candidate.id) {
+                            <div class="schedule-panel" (click)="$event.stopPropagation()">
+                              <form [formGroup]="scheduleForm" class="schedule-form">
+                                <select formControlName="interview_type" class="field-input-sm">
+                                  <option value="hr">{{ i18n.t('interview_type_hr') }}</option>
+                                  <option value="technical">{{ i18n.t('interview_type_technical') }}</option>
+                                </select>
+
+                                <select formControlName="mode" class="field-input-sm">
+                                  <option value="online">{{ i18n.t('interview_mode_online') }}</option>
+                                  <option value="offline">{{ i18n.t('interview_mode_offline') }}</option>
+                                </select>
+
+                                <input
+                                  type="number"
+                                  formControlName="duration_minutes"
+                                  [placeholder]="i18n.t('interview_duration_label')"
+                                  class="field-input-sm"
+                                />
+
+                                <input
+                                  type="date"
+                                  formControlName="interview_date"
+                                  class="field-input-sm"
+                                />
+
+                                <div class="time-row">
+                                  <input type="time" formControlName="window_start_time" class="field-input-sm" />
+                                  <span class="time-sep">→</span>
+                                  <input type="time" formControlName="window_end_time" class="field-input-sm" />
+                                </div>
+
+                                @if (scheduleStatus()) {
+                                  <div
+                                    class="status-msg-sm"
+                                    [class.status-success]="scheduleStatus()!.type === 'success'"
+                                    [class.status-error]="scheduleStatus()!.type === 'error'"
+                                  >
+                                    {{ scheduleStatus()!.text }}
+                                  </div>
+                                }
+
+                                <button
+                                  type="button"
+                                  class="send-schedule-btn"
+                                  [disabled]="isSendingSchedule()"
+                                  (click)="sendScheduleLink(candidate, $event)"
+                                >
+                                  <lucide-icon [img]="MailIcon" [size]="13" />
+                                  {{ isSendingSchedule() ? i18n.t('interview_sending') : i18n.t('interview_send_button') }}
+                                </button>
+                              </form>
+
+                              @if (candidateSchedules().length > 0) {
+                                <div class="schedules-history">
+                                  <span class="history-label">{{ i18n.t('interview_history_title') }}</span>
+                                  @for (schedule of candidateSchedules(); track schedule.id) {
+                                    <div class="schedule-item">
+                                      <div class="schedule-item-header">
+                                        <span>{{ interviewTypeLabel(schedule.interview_type) }} — {{ schedule.interview_date }}</span>
+                                        <span
+                                          class="booking-badge"
+                                          [class.badge-booked]="schedule.booked_slot_time"
+                                          [class.badge-pending]="!schedule.booked_slot_time"
+                                        >
+                                          {{ schedule.booked_slot_time ? i18n.t('interview_status_booked') : i18n.t('interview_status_pending') }}
+                                        </span>
+                                      </div>
+
+                                      @if (schedule.booked_slot_time) {
+                                        <div class="schedule-item-meta">
+                                          {{ i18n.t('interview_booked_at') }}: {{ schedule.booked_slot_time }}
+                                        </div>
+                                        <div class="attendance-row">
+                                          <select
+                                            [ngModel]="schedule.attendance_status"
+                                            [ngModelOptions]="{ standalone: true }"
+                                            (ngModelChange)="updateAttendance(schedule.id, $event)"
+                                            class="attendance-select"
+                                          >
+                                            <option value="scheduled">{{ i18n.t('interview_attendance_scheduled') }}</option>
+                                            <option value="attended">{{ i18n.t('interview_attendance_attended') }}</option>
+                                            <option value="no_show">{{ i18n.t('interview_attendance_no_show') }}</option>
+                                          </select>
+                                        </div>
+                                      }
+                                    </div>
+                                  }
+                                </div>
+                              }
+                            </div>
+                          }
                         </div>
                       }
                     }

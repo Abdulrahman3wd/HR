@@ -1,0 +1,101 @@
+<div class="book-page">
+  <div class="top-controls">
+    <app-theme-toggle />
+    <app-lang-toggle />
+  </div>
+
+  @if (isLoading()) {
+    <div class="state-box">
+      <p>{{ i18n.t('apply_book_loading') }}</p>
+    </div>
+  } @else if (notFound()) {
+    <div class="state-box">
+      <lucide-icon [img]="CalendarIcon" [size]="32" />
+      <h2>{{ i18n.t('apply_book_not_found') }}</h2>
+    </div>
+  } @else if (bookingSuccess()) {
+    <div class="book-card success-card">
+      <div class="success-icon">
+        <lucide-icon [img]="SuccessIcon" [size]="32" />
+      </div>
+      <h2>{{ i18n.t('apply_book_success_title') }}</h2>
+      <div class="confirmed-slot-box">
+        <span>{{ i18n.t('apply_book_your_slot') }}</span>
+        <strong>{{ confirmedSlot() }}</strong>
+      </div>
+    </div>
+  } @else if (info(); as i) {
+    <div class="book-card">
+      <div class="book-header">
+        <div class="book-icon">
+          <lucide-icon [img]="CalendarIcon" [size]="20" />
+        </div>
+        <div>
+          <h1 class="book-title">{{ i18n.t('apply_book_title') }}</h1>
+          <p class="book-subtitle">{{ i18n.t('apply_book_for') }} {{ i.job_title }}</p>
+        </div>
+      </div>
+
+      <div class="info-grid">
+        <div class="info-chip">
+          <span class="chip-label">{{ i18n.t('interview_type_label') }}</span>
+          <span class="chip-value">{{ typeLabel(i.interview_type) }}</span>
+        </div>
+        <div class="info-chip">
+          <lucide-icon [img]="i.mode === 'online' ? OnlineIcon : OfflineIcon" [size]="14" />
+          <span class="chip-value">{{ i.mode === 'online' ? i18n.t('interview_mode_online') : i18n.t('interview_mode_offline') }}</span>
+        </div>
+        <div class="info-chip">
+          <span class="chip-label">{{ i18n.t('interview_date_label') }}</span>
+          <span class="chip-value">{{ i.interview_date }}</span>
+        </div>
+        <div class="info-chip">
+          <span class="chip-label">{{ i18n.t('interview_duration_label') }}</span>
+          <span class="chip-value">{{ i.duration_minutes }}</span>
+        </div>
+      </div>
+
+      @if (i.is_booked) {
+        <div class="already-booked-box">
+          <p>{{ i18n.t('apply_book_already_booked') }}</p>
+          <div class="confirmed-slot-box">
+            <span>{{ i18n.t('apply_book_your_slot') }}</span>
+            <strong>{{ i.booked_slot_time }}</strong>
+          </div>
+        </div>
+      } @else {
+        <div class="slots-section">
+          <h3 class="slots-title">{{ i18n.t('apply_book_select_slot') }}</h3>
+
+          @if (i.available_slots.length === 0) {
+            <p class="no-slots-text">{{ i18n.t('apply_book_no_slots') }}</p>
+          } @else {
+            <div class="slots-grid">
+              @for (slot of i.available_slots; track slot) {
+                <button
+                  class="slot-btn"
+                  [class.slot-selected]="selectedSlot() === slot"
+                  (click)="selectSlot(slot)"
+                >
+                  {{ slot }}
+                </button>
+              }
+            </div>
+
+            @if (errorMessage()) {
+              <div class="error-box">{{ errorMessage() }}</div>
+            }
+
+            <button
+              class="confirm-btn"
+              [disabled]="!selectedSlot() || isBooking()"
+              (click)="confirmBooking()"
+            >
+              {{ isBooking() ? i18n.t('apply_book_booking') : i18n.t('apply_book_confirm') }}
+            </button>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

@@ -1,6 +1,6 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { ReactiveFormsModule, FormsModule, FormBuilder, Validators } from '@angular/forms';
-import { LucideAngularModule, Briefcase, Users, Plus, X, Upload, FileText, Pencil, Trash2, Check, Link2, Copy } from 'lucide-angular';
+import { LucideAngularModule, Briefcase, Users, Plus, X, Upload, FileText, Pencil, Trash2, Check, Link2, Copy, CalendarClock, Mail } from 'lucide-angular';
 import { DragDropModule, CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { TranslationKey } from '../../core/services/translations';
 import { RecruitmentService } from '../../core/services/recruitment.service';
@@ -8,6 +8,8 @@ import { I18nService } from '../../core/services/i18n.service';
 import { JobOpening, Candidate, CandidateStage, CustomQuestion, QuestionType } from '../../core/models/recruitment.model';
 import { ToastService } from '../../core/services/toast.service';
 import { ConfirmDialogService } from '../../core/services/confirm-dialog.service';
+import { InterviewService } from '../../core/services/interview.service';
+import { InterviewScheduleRecord, InterviewType, InterviewMode, AttendanceStatus } from '../../core/models/interview.model';
 type RecruitmentTab = 'jobs' | 'pipeline';
 
 const PIPELINE_STAGES: CandidateStage[] = [
@@ -29,7 +31,7 @@ export class Recruitment implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly recruitmentService = inject(RecruitmentService);
   protected readonly i18n = inject(I18nService);
-  
+    private readonly interviewService = inject(InterviewService);
   private readonly toast = inject(ToastService);
   private readonly confirmDialog = inject(ConfirmDialogService);
   protected readonly JobsIcon = Briefcase;
@@ -45,7 +47,8 @@ export class Recruitment implements OnInit {
   protected readonly CopyIcon = Copy;
   protected readonly activeTab = signal<RecruitmentTab>('jobs');
   protected readonly stages = PIPELINE_STAGES;
-
+  protected readonly ScheduleIcon = CalendarClock;
+  protected readonly MailIcon = Mail;
   // ---------- Jobs state ----------
   protected readonly jobs = signal<JobOpening[]>([]);
   protected readonly jobStatus = signal<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -57,7 +60,19 @@ export class Recruitment implements OnInit {
     description: ['', Validators.required],
     requirements: ['', Validators.required],
   });
+  protected readonly schedulingCandidateId = signal<number | null>(null);
+  protected readonly candidateSchedules = signal<InterviewScheduleRecord[]>([]);
+  protected readonly isSendingSchedule = signal(false);
+  protected readonly scheduleStatus = signal<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  protected readonly scheduleForm = this.fb.nonNullable.group({
+    interview_type: 'hr' as InterviewType,
+    mode: 'online' as InterviewMode,
+    duration_minutes: 30,
+    interview_date: '',
+    window_start_time: '',
+    window_end_time: '',
+  });
   // ---------- Pipeline state ----------
   protected readonly candidates = signal<Candidate[]>([]);
   protected readonly selectedJobId = signal<number | null>(null);
@@ -368,5 +383,78 @@ export class Recruitment implements OnInit {
     navigator.clipboard.writeText(link).then(() => {
       this.toast.success('Link copied successfully');
     });
+  }
+    protected toggleScheduling(candidate: Candidate, event: Event): void {
+    event.stopPropagation();
+    const isOpening = this.schedulingCandidateId() !== candidate.id;
+    this.schedulingCandidateId.set(isOpening ? candidate.id : null);
+    this.scheduleStatus.set(null);
+
+    if (isOpening) {
+      this.loadCandidateSchedules(candidate.id);
+    }
+  }
+
+  private loadCandidateSchedules(candidateId: number): void {
+    this.interviewService.getCandidateSchedules(candidateId).subscribe({
+      next: (data) => this.candidateSchedules.set(data.schedules),
+    });
+  }
+
+  protected sendScheduleLink(candidate: Candidate, event: Event): void {
+    event.stopPropagation();
+
+    if (!candidate.email) {
+      this.scheduleStatus.set({ type: 'error', text: this.i18n.t('interview_no_email_error') });
+      return;
+    }
+
+    if (this.scheduleForm.invalid) {
+      this.scheduleForm.markAllAsTouched();
+      return;
+    }
+
+    this.isSendingSchedule.set(true);
+    this.scheduleStatus.set(null);
+
+    this.interviewService
+      .scheduleInterview({
+        candidate_id: candidate.id,
+        ...this.scheduleForm.getRawValue(),
+      })
+      .subscribe({
+        next: () => {
+          this.isSendingSchedule.set(false);
+          this.scheduleStatus.set({ type: 'success', text: this.i18n.t('interview_sent_success') });
+          this.toast.success(this.i18n.t('interview_sent_success'));
+          this.scheduleForm.reset({ interview_type: 'hr', mode: 'online', duration_minutes: 30 });
+          this.loadCandidateSchedules(candidate.id);
+        },
+        error: (err) => {
+          this.isSendingSchedule.set(false);
+          this.scheduleStatus.set({ type: 'error', text: err.error?.detail || this.i18n.t('interview_sent_error') });
+        },
+      });
+  }
+
+  protected updateAttendance(scheduleId: number, status: AttendanceStatus): void {
+    this.interviewService.setAttendance(scheduleId, status).subscribe({
+      next: (updated) => {
+        this.candidateSchedules.update((list) =>
+          list.map((s) => (s.id === updated.id ? updated : s))
+        );
+        this.toast.success('تم تحديث حالة الحضور');
+      },
+    });
+  }
+
+  protected interviewTypeLabel(type: InterviewType): string {
+    return type === 'hr' ? this.i18n.t('interview_type_hr') : this.i18n.t('interview_type_technical');
+  }
+
+  protected attendanceLabel(status: AttendanceStatus): string {
+    if (status === 'attended') return this.i18n.t('interview_attendance_attended');
+    if (status === 'no_show') return this.i18n.t('interview_attendance_no_show');
+    return this.i18n.t('interview_attendance_scheduled');
   }
 }

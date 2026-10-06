@@ -64,9 +64,10 @@ def generate_policy_answer(company_id: int, question: str):
 
 
 def generate_personal_answer(user_data: dict, question: str) -> str:
+    department = user_data.get("department") or "غير محدد"
     user_prompt = f"""بيانات الموظف الحالي من قاعدة بيانات الموارد البشرية:
 - الاسم: {user_data['full_name']}
-- القسم: {user_data['department']}
+- القسم: {department}
 - رصيد الإجازة السنوية المتبقي: {user_data['annual_leave_balance']} يوم
 - رصيد الإجازة المرضية المتبقي: {user_data['sick_leave_balance']} يوم
 

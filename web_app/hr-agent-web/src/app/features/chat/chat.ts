@@ -1,7 +1,8 @@
 import { Component, inject, signal, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { LucideAngularModule, Send, Sparkles } from 'lucide-angular';
+import { ArrowRight, LucideAngularModule, MessageCircle } from 'lucide-angular';
 
+import { AuthService } from '../../core/services/auth.service';
 import { ChatService } from '../../core/services/chat.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { ChatMessage } from '../../core/models/chat.model';
@@ -13,15 +14,28 @@ import { ChatMessage } from '../../core/models/chat.model';
   styleUrl: './chat.css',
 })
 export class Chat implements AfterViewChecked {
+  private readonly auth = inject(AuthService);
   private readonly chatService = inject(ChatService);
   protected readonly i18n = inject(I18nService);
 
-  protected readonly SendIcon = Send;
-  protected readonly SparklesIcon = Sparkles;
+  protected readonly MessageIcon = MessageCircle;
+  protected readonly ArrowIcon = ArrowRight;
+  protected readonly suggestions = [
+    'chat_suggestion_balance',
+    'chat_suggestion_carryover',
+    'chat_suggestion_hours',
+  ] as const;
 
   protected readonly messages = signal<ChatMessage[]>([]);
   protected readonly questionText = signal('');
   protected readonly isThinking = signal(false);
+
+  protected welcomeTitle(): string {
+    const firstName = this.auth.currentUser()?.full_name.trim().split(/\s+/)[0];
+    return firstName
+      ? this.i18n.t('chat_empty_title', { name: firstName })
+      : this.i18n.t('chat_empty_title_fallback');
+  }
 
   @ViewChild('scrollAnchor') private scrollAnchor?: ElementRef<HTMLDivElement>;
   private shouldScroll = false;
@@ -53,6 +67,11 @@ export class Chat implements AfterViewChecked {
         this.shouldScroll = true;
       },
     });
+  }
+
+  protected askSuggestion(question: string): void {
+    this.questionText.set(question);
+    this.sendQuestion();
   }
 
   protected onKeydown(event: KeyboardEvent): void {

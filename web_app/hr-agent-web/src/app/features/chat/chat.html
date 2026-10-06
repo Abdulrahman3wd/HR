@@ -1,50 +1,93 @@
 <div class="chat-page">
-  <div class="messages-area">
-    @if (messages().length === 0) {
-      <div class="empty-state">
-        <div class="empty-icon">
-          <lucide-icon [img]="SparklesIcon" [size]="26" />
+  <header class="chat-heading">
+    <p class="chat-eyebrow">{{ i18n.t('chat_workspace') }}</p>
+    <h1>{{ i18n.t('chat_page_title') }}</h1>
+    <p class="chat-description">{{ i18n.t('chat_page_description') }}</p>
+  </header>
+
+  <section class="chat-panel" aria-label="{{ i18n.t('chat_page_title') }}">
+    <div class="messages-area" [class.messages-area-empty]="messages().length === 0">
+      @if (messages().length === 0) {
+        <div class="empty-state">
+          <div class="empty-icon">
+            <lucide-icon [img]="MessageIcon" [size]="22" />
+          </div>
+          <h2 class="empty-title">{{ welcomeTitle() }}</h2>
+          <p class="empty-subtitle">{{ i18n.t('chat_empty_subtitle') }}</p>
+          <div class="suggestions" aria-label="{{ i18n.t('chat_suggestions_label') }}">
+            @for (suggestion of suggestions; track suggestion) {
+              <button type="button" class="suggestion" (click)="askSuggestion(i18n.t(suggestion))">
+                <span>{{ i18n.t(suggestion) }}</span>
+                <lucide-icon [img]="ArrowIcon" [size]="15" />
+              </button>
+            }
+          </div>
+          <p class="empty-note">{{ i18n.t('chat_disclaimer') }}</p>
         </div>
-        <h2 class="empty-title">{{ i18n.t('chat_empty_title') }}</h2>
-        <p class="empty-subtitle">{{ i18n.t('chat_empty_subtitle') }}</p>
-      </div>
-    }
+      }
 
-    @for (msg of messages(); track $index) {
-      <div class="msg-row" [class.msg-row-user]="msg.role === 'user'">
-        <div class="msg-bubble" [class.msg-user]="msg.role === 'user'" [class.msg-agent]="msg.role === 'agent'">
-          {{ msg.text }}
-
-          @if (msg.sources && msg.sources.length > 0) {
-            <div class="msg-sources">{{ i18n.t('chat_source') }}: {{ msg.sources.join(', ') }}</div>
+      @for (msg of messages(); track $index) {
+        <article class="message" [class.message-user]="msg.role === 'user'">
+          @if (msg.role === 'agent') {
+            <div class="message-label">
+              <span class="assistant-mark"><lucide-icon [img]="MessageIcon" [size]="13" /></span>
+              <span>{{ i18n.t('chat_assistant') }}</span>
+            </div>
+          } @else {
+            <p class="message-label user-label">{{ i18n.t('chat_you') }}</p>
           }
+
+          <div class="msg-bubble" [class.msg-user]="msg.role === 'user'" [class.msg-agent]="msg.role === 'agent'">
+            {{ msg.text }}
+
+            @if (msg.sources && msg.sources.length > 0) {
+              <div class="msg-sources">
+                <span class="source-title">{{ i18n.t('chat_source') }}</span>
+                @for (source of msg.sources; track source) {
+                  <span class="source-item">{{ source }}</span>
+                }
+              </div>
+            }
+          </div>
+        </article>
+      }
+
+      @if (isThinking()) {
+        <article class="message">
+          <div class="message-label">
+            <span class="assistant-mark"><lucide-icon [img]="MessageIcon" [size]="13" /></span>
+            <span>{{ i18n.t('chat_assistant') }}</span>
+          </div>
+          <div class="msg-bubble msg-agent msg-thinking" [attr.aria-label]="i18n.t('chat_thinking')">
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+          </div>
+        </article>
+      }
+
+      <div #scrollAnchor></div>
+    </div>
+
+    <footer class="input-area">
+      <div class="composer">
+        <textarea
+          [(ngModel)]="questionText"
+          (keydown)="onKeydown($event)"
+          [placeholder]="i18n.t('chat_placeholder')"
+          [attr.aria-label]="i18n.t('chat_placeholder')"
+          class="chat-input"
+          rows="2"
+        ></textarea>
+        <div class="composer-actions">
+          <span class="keyboard-hint">{{ i18n.t('chat_keyboard_hint') }}</span>
+          <button (click)="sendQuestion()" class="send-btn" [disabled]="isThinking()">
+            <span>{{ isThinking() ? i18n.t('chat_thinking') : i18n.t('chat_send') }}</span>
+            <lucide-icon [img]="ArrowIcon" [size]="16" />
+          </button>
         </div>
       </div>
-    }
-
-    @if (isThinking()) {
-      <div class="msg-row">
-        <div class="msg-bubble msg-agent msg-thinking">
-          <span class="dot"></span>
-          <span class="dot"></span>
-          <span class="dot"></span>
-        </div>
-      </div>
-    }
-
-    <div #scrollAnchor></div>
-  </div>
-
-  <div class="input-area">
-    <textarea
-      [(ngModel)]="questionText"
-      (keydown)="onKeydown($event)"
-      [placeholder]="i18n.t('chat_placeholder')"
-      class="chat-input"
-      rows="1"
-    ></textarea>
-    <button (click)="sendQuestion()" class="send-btn" [disabled]="isThinking()">
-      <lucide-icon [img]="SendIcon" [size]="18" />
-    </button>
-  </div>
+      <p class="composer-note">{{ i18n.t('chat_disclaimer') }}</p>
+    </footer>
+  </section>
 </div>

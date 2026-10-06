@@ -227,6 +227,28 @@
   color: var(--color-text-primary);
 }
 
+.typing-caret {
+  display: inline-block;
+  width: 1px;
+  height: 1em;
+  margin-inline-start: 2px;
+  vertical-align: text-bottom;
+  background: currentColor;
+  animation: typing-caret-blink 1s steps(2, start) infinite;
+}
+
+@keyframes typing-caret-blink {
+  to {
+    visibility: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .typing-caret {
+    animation: none;
+  }
+}
+
 .msg-sources {
   display: grid;
   gap: 0.25rem;
@@ -313,7 +335,10 @@ textarea.chat-input {
   min-height: 2.8rem;
   max-height: 9rem;
   padding: 0.15rem 0.1rem 0.45rem;
-  resize: vertical;
+  resize: none;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   border: 0;
   outline: 0;
   background: transparent;
@@ -321,6 +346,10 @@ textarea.chat-input {
   font: inherit;
   font-size: 0.75rem;
   line-height: 1.5;
+}
+
+textarea.chat-input::-webkit-scrollbar {
+  display: none;
 }
 
 .chat-input::placeholder {

@@ -38,9 +38,12 @@
           }
 
           <div class="msg-bubble" [class.msg-user]="msg.role === 'user'" [class.msg-agent]="msg.role === 'agent'">
-            {{ msg.text }}
+            {{ msg.role === 'agent' && typingMessageIndex() === $index ? displayedAnswer() : msg.text }}
+            @if (isTyping() && typingMessageIndex() === $index) {
+              <span class="typing-caret" aria-hidden="true"></span>
+            }
 
-            @if (msg.sources && msg.sources.length > 0) {
+            @if (msg.sources && msg.sources.length > 0 && typingMessageIndex() !== $index) {
               <div class="msg-sources">
                 <span class="source-title">{{ i18n.t('chat_source') }}</span>
                 @for (source of msg.sources; track source) {
@@ -72,18 +75,20 @@
     <footer class="input-area">
       <div class="composer">
         <textarea
+          #questionInput
           [(ngModel)]="questionText"
+          (input)="resizeInput($event)"
           (keydown)="onKeydown($event)"
           [placeholder]="i18n.t('chat_placeholder')"
           [attr.aria-label]="i18n.t('chat_placeholder')"
           class="chat-input"
-          rows="2"
+          rows="1"
         ></textarea>
         <div class="composer-actions">
           <span class="keyboard-hint">{{ i18n.t('chat_keyboard_hint') }}</span>
-          <button (click)="sendQuestion()" class="send-btn" [disabled]="isThinking()">
-            <span>{{ isThinking() ? i18n.t('chat_thinking') : i18n.t('chat_send') }}</span>
-            <lucide-icon [img]="ArrowIcon" [size]="16" />
+          <button (click)="sendQuestion()" class="send-btn" [disabled]="isThinking() || isTyping()">
+            <span>{{ isThinking() ? i18n.t('chat_thinking') : isTyping() ? i18n.t('chat_typing') : i18n.t('chat_send') }}</span>
+            <lucide-icon [img]="SendArrowIcon()" [size]="16" />
           </button>
         </div>
       </div>

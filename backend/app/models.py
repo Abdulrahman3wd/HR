@@ -24,6 +24,7 @@ class LoginResponse(BaseModel):
     company_name: str
     full_name: str
     role: str
+    avatar_url: str | None = None
 
 
 class CurrentUserResponse(BaseModel):
@@ -35,6 +36,7 @@ class CurrentUserResponse(BaseModel):
     role: str
     annual_leave_balance: int
     sick_leave_balance: int
+    avatar_url: str | None = None
 
 
 class ChangePasswordRequest(BaseModel):

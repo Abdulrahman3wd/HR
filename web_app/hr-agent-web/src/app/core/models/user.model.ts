@@ -14,6 +14,7 @@ export interface LoginResponse {
   company_name: string;
   full_name: string;
   role: UserRole;
+  avatar_url: string | null;
 }
 
 export interface CurrentUser {
@@ -22,4 +23,5 @@ export interface CurrentUser {
   company_name: string;
   full_name: string;
   role: UserRole;
+  avatar_url: string | null;
 }

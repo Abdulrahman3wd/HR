@@ -20,6 +20,7 @@ HR_DB_FILE = DATA_DIR / "hr_data.db"
 # and its own Chroma collection (named "company_{id}_policies").
 DOCS_BASE_FOLDER = DATA_DIR / "company_docs"
 CHROMA_DB_FOLDER = DATA_DIR / "chroma_db"  # shared Chroma instance, isolated by collection name
+PROFILE_PICTURES_DIR = DATA_DIR / "profile_pictures"
 
 EMBEDDING_MODEL = "paraphrase-multilingual-MiniLM-L12-v2"
 CHUNK_SIZE = 500

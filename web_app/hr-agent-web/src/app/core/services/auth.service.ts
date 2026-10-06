@@ -29,6 +29,7 @@ setSession(response: LoginResponse): void {
     company_name: response.company_name,
     full_name: response.full_name,
     role: response.role,
+      avatar_url: response.avatar_url,
   };
 
     localStorage.setItem(TOKEN_KEY, response.access_token);
@@ -36,6 +37,15 @@ setSession(response: LoginResponse): void {
 
     this.token.set(response.access_token);
     this.currentUser.set(user);
+  }
+
+  updateAvatar(avatarUrl: string): void {
+    const user = this.currentUser();
+    if (!user) return;
+
+    const updatedUser = { ...user, avatar_url: avatarUrl };
+    localStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
+    this.currentUser.set(updatedUser);
   }
 
   logout(): void {

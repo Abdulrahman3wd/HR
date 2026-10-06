@@ -4,3 +4,4 @@ __pycache__/
 *.pyc
 data/chroma_db/
 data/hr_data.db
+data/profile_pictures/

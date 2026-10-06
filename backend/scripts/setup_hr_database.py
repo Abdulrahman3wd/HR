@@ -74,12 +74,12 @@ def main():
             social_insurance_percentage REAL NOT NULL DEFAULT 0,
             has_health_insurance INTEGER NOT NULL DEFAULT 0,
             health_insurance_percentage REAL NOT NULL DEFAULT 0,
+            avatar_filename TEXT,
             PRIMARY KEY (employee_id, company_id),
             FOREIGN KEY (company_id) REFERENCES companies(id),
             FOREIGN KEY (department_id) REFERENCES departments(id)
         )
     """)
-
     cursor.execute("""
         CREATE TABLE chat_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

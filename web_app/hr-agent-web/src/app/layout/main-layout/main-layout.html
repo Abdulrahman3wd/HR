@@ -31,7 +31,13 @@
             <strong>{{ auth.currentUser()?.full_name }}</strong>
             <span>{{ roleLabel() }}</span>
           </div>
-          <div class="avatar">{{ (auth.currentUser()?.full_name ?? 'U').charAt(0).toUpperCase() }}</div>
+          <div class="avatar" aria-hidden="true">
+            @if (auth.currentUser()?.avatar_url; as avatarUrl) {
+              <img [src]="avatarUrl" alt="" />
+            } @else {
+              {{ (auth.currentUser()?.full_name ?? 'U').charAt(0).toUpperCase() }}
+            }
+          </div>
         </div>
       </div>
 

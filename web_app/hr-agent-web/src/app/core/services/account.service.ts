@@ -11,6 +11,12 @@ export class AccountService {
     return this.http.get<CurrentUserProfile>(`${environment.apiUrl}/me`);
   }
 
+  uploadProfilePicture(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<{ avatar_url: string }>(`${environment.apiUrl}/me/profile-picture`, formData);
+  }
+
   changePassword(request: ChangePasswordRequest) {
     return this.http.put<{ message: string }>(`${environment.apiUrl}/me/password`, request);
   }

@@ -7,6 +7,7 @@ export interface CurrentUserProfile {
   role: 'admin' | 'hr' | 'employee';
   annual_leave_balance: number;
   sick_leave_balance: number;
+  avatar_url: string | null;
 }
 
 export interface ChangePasswordRequest {

@@ -9,6 +9,7 @@ Run from the `backend` folder with:
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from slowapi.errors import RateLimitExceeded
 from slowapi import _rate_limit_exceeded_handler
 
@@ -36,6 +37,8 @@ from app.routers import (
     public_interview_routes
 )
 from app.rate_limiter import limiter
+from app.config import PROFILE_PICTURES_DIR
+from app.database import ensure_avatar_filename_column
 
 app = FastAPI(title="HR Agent API")
 
@@ -54,6 +57,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.mount(
+    "/profile-pictures",
+    StaticFiles(directory=str(PROFILE_PICTURES_DIR), check_dir=False),
+    name="profile-pictures",
+)
+
+
+@app.on_event("startup")
+def prepare_profile_picture_storage():
+    PROFILE_PICTURES_DIR.mkdir(parents=True, exist_ok=True)
+    ensure_avatar_filename_column()
 
 app.include_router(auth_routes.router)
 app.include_router(chat_routes.router)

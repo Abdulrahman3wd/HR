@@ -19,6 +19,16 @@ def _get_connection():
     return conn
 
 
+def ensure_avatar_filename_column() -> None:
+    conn = _get_connection()
+    cursor = conn.cursor()
+    columns = {row["name"] for row in cursor.execute("PRAGMA table_info(users)").fetchall()}
+    if "avatar_filename" not in columns:
+        cursor.execute("ALTER TABLE users ADD COLUMN avatar_filename TEXT")
+        conn.commit()
+    conn.close()
+
+
 # ---------- Companies ----------
 def get_company_by_code(company_code: str) -> dict | None:
     conn = _get_connection()
@@ -94,7 +104,7 @@ def get_user_by_id(employee_id: str, company_id: int) -> dict | None:
     cursor.execute(
         "SELECT employee_id, company_id, full_name, department_id, manager_id, role, password_hash, "
         "annual_leave_balance, sick_leave_balance, basic_salary, has_social_insurance, "
-        "social_insurance_percentage, has_health_insurance, health_insurance_percentage "
+        "social_insurance_percentage, has_health_insurance, health_insurance_percentage, avatar_filename "
         "FROM users WHERE employee_id = ? AND company_id = ?",
         (employee_id, company_id),
     )
@@ -166,7 +176,7 @@ def update_user(employee_id: str, company_id: int, updates: dict) -> dict | None
         "full_name", "department_id", "manager_id", "role",
         "annual_leave_balance", "sick_leave_balance", "password_hash",
         "basic_salary", "has_social_insurance", "social_insurance_percentage",
-        "has_health_insurance", "health_insurance_percentage",
+        "has_health_insurance", "health_insurance_percentage", "avatar_filename",
     }
     fields_to_update = {k: v for k, v in updates.items() if k in allowed_fields and v is not None}
 

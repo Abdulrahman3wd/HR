@@ -3,6 +3,7 @@ import { ReactiveFormsModule, FormBuilder, Validators, AbstractControl, Validati
 import { LucideAngularModule, KeyRound } from 'lucide-angular';
 
 import { AccountService } from '../../core/services/account.service';
+import { AuthService } from '../../core/services/auth.service';
 import { DepartmentService } from '../../core/services/department.service';
 import { PayrollService } from '../../core/services/payroll.service';
 import { I18nService } from '../../core/services/i18n.service';
@@ -26,6 +27,7 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
 export class Account implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly accountService = inject(AccountService);
+  private readonly auth = inject(AuthService);
   private readonly departmentService = inject(DepartmentService);
   private readonly payrollService = inject(PayrollService);
   protected readonly i18n = inject(I18nService);
@@ -37,6 +39,7 @@ export class Account implements OnInit {
 
   protected readonly profile = signal<CurrentUserProfile | null>(null);
   protected readonly isChanging = signal(false);
+  protected readonly isUploadingAvatar = signal(false);
   protected readonly statusMessage = signal<{ type: 'success' | 'error'; text: string } | null>(null);
 
   protected readonly form = this.fb.nonNullable.group(
@@ -73,6 +76,34 @@ protected roleLabel(role: 'admin' | 'hr' | 'employee'): string {
     if (!departmentId) return '—';
     return this.departments().find((d) => d.id === departmentId)?.name ?? '—';
   }
+
+  protected onAvatarSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
+    if (!allowedTypes.includes(file.type) || file.size > 5 * 1024 * 1024) {
+      this.toast.error(this.i18n.t('account_picture_invalid'));
+      return;
+    }
+
+    this.isUploadingAvatar.set(true);
+    this.accountService.uploadProfilePicture(file).subscribe({
+      next: ({ avatar_url }) => {
+        this.profile.update((profile) => profile ? { ...profile, avatar_url } : profile);
+        this.auth.updateAvatar(avatar_url);
+        this.isUploadingAvatar.set(false);
+        this.toast.success(this.i18n.t('account_picture_uploaded'));
+      },
+      error: () => {
+        this.isUploadingAvatar.set(false);
+        this.toast.error(this.i18n.t('account_picture_error'));
+      },
+    });
+  }
+
   protected onSubmit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();

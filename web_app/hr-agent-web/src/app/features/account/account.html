@@ -4,6 +4,33 @@
 
     @if (profile(); as p) {
       <div class="info-box">
+        <div class="profile-picture-row">
+          <div class="profile-picture" aria-hidden="true">
+            @if (p.avatar_url) {
+              <img [src]="p.avatar_url" alt="" />
+            } @else {
+              <span>{{ p.full_name.charAt(0).toUpperCase() }}</span>
+            }
+          </div>
+          <div class="profile-picture-controls">
+            <strong>{{ i18n.t('account_profile_picture') }}</strong>
+            <input
+              #avatarInput
+              class="avatar-file-input"
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              (change)="onAvatarSelected($event)"
+            />
+            <button
+              type="button"
+              class="avatar-action"
+              [disabled]="isUploadingAvatar()"
+              (click)="avatarInput.click()"
+            >
+              {{ isUploadingAvatar() ? i18n.t('account_picture_uploading') : p.avatar_url ? i18n.t('account_picture_change') : i18n.t('account_picture_add') }}
+            </button>
+          </div>
+        </div>
         <div class="info-row">
           <span class="info-label">{{ i18n.t('account_field_id') }}</span>
           <span class="info-value">{{ p.employee_id }}</span>

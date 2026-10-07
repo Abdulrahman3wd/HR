@@ -10,6 +10,7 @@ company's data to another.
 """
 
 import sqlite3
+from datetime import datetime, timezone
 from app.config import HR_DB_FILE
 
 
@@ -26,6 +27,69 @@ def ensure_avatar_filename_column() -> None:
     if "avatar_filename" not in columns:
         cursor.execute("ALTER TABLE users ADD COLUMN avatar_filename TEXT")
         conn.commit()
+    conn.close()
+
+
+def ensure_employee_chat_tables() -> None:
+    conn = _get_connection()
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS employee_conversations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            company_id INTEGER NOT NULL,
+            participant_a TEXT NOT NULL,
+            participant_b TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            last_message_at TEXT,
+            UNIQUE (company_id, participant_a, participant_b),
+            CHECK (participant_a < participant_b),
+            FOREIGN KEY (participant_a, company_id) REFERENCES users(employee_id, company_id),
+            FOREIGN KEY (participant_b, company_id) REFERENCES users(employee_id, company_id)
+        );
+        CREATE TABLE IF NOT EXISTS employee_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            company_id INTEGER NOT NULL,
+            conversation_id INTEGER NOT NULL,
+            sender_id TEXT NOT NULL,
+            recipient_id TEXT NOT NULL,
+            body TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (conversation_id) REFERENCES employee_conversations(id) ON DELETE CASCADE,
+            FOREIGN KEY (sender_id, company_id) REFERENCES users(employee_id, company_id),
+            FOREIGN KEY (recipient_id, company_id) REFERENCES users(employee_id, company_id)
+        );
+        CREATE TABLE IF NOT EXISTS employee_message_reads (
+            company_id INTEGER NOT NULL,
+            conversation_id INTEGER NOT NULL,
+            employee_id TEXT NOT NULL,
+            last_read_message_id INTEGER NOT NULL DEFAULT 0,
+            read_at TEXT NOT NULL,
+            PRIMARY KEY (company_id, conversation_id, employee_id),
+            FOREIGN KEY (conversation_id) REFERENCES employee_conversations(id) ON DELETE CASCADE,
+            FOREIGN KEY (employee_id, company_id) REFERENCES users(employee_id, company_id)
+        );
+        CREATE TABLE IF NOT EXISTS employee_attachments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            company_id INTEGER NOT NULL,
+            conversation_id INTEGER NOT NULL,
+            message_id INTEGER NOT NULL UNIQUE,
+            original_filename TEXT NOT NULL,
+            storage_filename TEXT NOT NULL,
+            content_type TEXT NOT NULL,
+            file_size INTEGER NOT NULL,
+            FOREIGN KEY (conversation_id) REFERENCES employee_conversations(id) ON DELETE CASCADE,
+            FOREIGN KEY (message_id) REFERENCES employee_messages(id) ON DELETE CASCADE
+        );
+        CREATE INDEX IF NOT EXISTS idx_employee_conversations_a_recent
+            ON employee_conversations(company_id, participant_a, last_message_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_employee_conversations_b_recent
+            ON employee_conversations(company_id, participant_b, last_message_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_employee_messages_conversation
+            ON employee_messages(company_id, conversation_id, id DESC);
+        CREATE INDEX IF NOT EXISTS idx_employee_messages_recipient
+            ON employee_messages(company_id, recipient_id, conversation_id, id DESC);
+        """
+    )
     conn.close()
 
 
@@ -318,6 +382,337 @@ def get_chat_logs(company_id: int, employee_id: str | None = None, limit: int = 
         logs.append(log)
 
     return logs
+
+
+# ---------- Employee Chat ----------
+def list_chat_employees(
+    company_id: int,
+    current_employee_id: str,
+    search: str | None,
+    limit: int,
+    offset: int,
+) -> list[dict]:
+    conn = _get_connection()
+    cursor = conn.cursor()
+    search_pattern = f"%{search.strip()}%" if search and search.strip() else None
+    cursor.execute(
+        "SELECT employee_id, full_name, avatar_filename FROM users "
+        "WHERE company_id = ? AND employee_id != ? "
+        "AND (? IS NULL OR employee_id LIKE ? OR full_name LIKE ?) "
+        "ORDER BY full_name COLLATE NOCASE, employee_id LIMIT ? OFFSET ?",
+        (company_id, current_employee_id, search_pattern, search_pattern, search_pattern, limit, offset),
+    )
+    rows = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return rows
+
+
+def create_employee_conversation(company_id: int, employee_id: str, other_employee_id: str) -> int | None:
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT 1 FROM users WHERE company_id = ? AND employee_id = ?",
+        (company_id, other_employee_id),
+    )
+    if not cursor.fetchone():
+        conn.close()
+        return None
+
+    participant_a, participant_b = sorted((employee_id, other_employee_id))
+    cursor.execute(
+        "INSERT OR IGNORE INTO employee_conversations "
+        "(company_id, participant_a, participant_b) VALUES (?, ?, ?)",
+        (company_id, participant_a, participant_b),
+    )
+    cursor.execute(
+        "SELECT id FROM employee_conversations "
+        "WHERE company_id = ? AND participant_a = ? AND participant_b = ?",
+        (company_id, participant_a, participant_b),
+    )
+    row = cursor.fetchone()
+    conn.commit()
+    conn.close()
+    return row["id"] if row else None
+
+
+def list_employee_conversations(
+    company_id: int,
+    employee_id: str,
+    limit: int,
+    offset: int,
+) -> list[dict]:
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT c.id, u.employee_id, u.full_name, u.avatar_filename, "
+        "COALESCE(c.last_message_at, c.created_at) AS last_activity_at, "
+        "(SELECT COALESCE(NULLIF(m.body, ''), a.original_filename) "
+        "FROM employee_messages m LEFT JOIN employee_attachments a "
+        "ON a.message_id = m.id AND a.company_id = m.company_id "
+        " WHERE m.company_id = c.company_id AND m.conversation_id = c.id "
+        " ORDER BY m.id DESC LIMIT 1) AS last_message "
+        ", (SELECT COUNT(*) FROM employee_messages unread "
+        "LEFT JOIN employee_message_reads read_state "
+        " ON read_state.company_id = unread.company_id "
+        " AND read_state.conversation_id = unread.conversation_id "
+        " AND read_state.employee_id = ? "
+        "WHERE unread.company_id = c.company_id AND unread.conversation_id = c.id "
+        "AND unread.recipient_id = ? "
+        "AND unread.id > COALESCE(read_state.last_read_message_id, 0)) AS unread_count "
+        "FROM employee_conversations c "
+        "JOIN users u ON u.company_id = c.company_id AND u.employee_id = "
+        "CASE WHEN c.participant_a = ? THEN c.participant_b ELSE c.participant_a END "
+        "WHERE c.company_id = ? AND (c.participant_a = ? OR c.participant_b = ?) "
+        "ORDER BY COALESCE(c.last_message_at, c.created_at) DESC, c.id DESC LIMIT ? OFFSET ?",
+        (employee_id, employee_id, employee_id, company_id, employee_id, employee_id, limit, offset),
+    )
+    rows = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return rows
+
+
+def get_employee_conversation(company_id: int, employee_id: str, conversation_id: int) -> dict | None:
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT c.id, u.employee_id, u.full_name, u.avatar_filename, "
+        "COALESCE(c.last_message_at, c.created_at) AS last_activity_at, "
+        "(SELECT COALESCE(NULLIF(m.body, ''), a.original_filename) "
+        "FROM employee_messages m LEFT JOIN employee_attachments a "
+        "ON a.message_id = m.id AND a.company_id = m.company_id "
+        " WHERE m.company_id = c.company_id AND m.conversation_id = c.id "
+        " ORDER BY m.id DESC LIMIT 1) AS last_message "
+        "FROM employee_conversations c "
+        "JOIN users u ON u.company_id = c.company_id AND u.employee_id = "
+        "CASE WHEN c.participant_a = ? THEN c.participant_b ELSE c.participant_a END "
+        "WHERE c.id = ? AND c.company_id = ? AND (c.participant_a = ? OR c.participant_b = ?)",
+        (employee_id, conversation_id, company_id, employee_id, employee_id),
+    )
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def get_employee_messages(
+    company_id: int,
+    conversation_id: int,
+    before_id: int | None,
+    limit: int,
+) -> list[dict]:
+    conn = _get_connection()
+    cursor = conn.cursor()
+    if before_id is None:
+        cursor.execute(
+            "SELECT m.id, m.conversation_id, m.sender_id, m.recipient_id, m.body, m.created_at "
+                ", a.id AS attachment_id, a.original_filename, a.content_type, a.file_size "
+                "FROM employee_messages m LEFT JOIN employee_attachments a "
+                "ON a.message_id = m.id AND a.company_id = m.company_id "
+                "WHERE m.company_id = ? AND m.conversation_id = ? "
+                "ORDER BY m.id DESC LIMIT ?",
+            (company_id, conversation_id, limit),
+        )
+    else:
+        cursor.execute(
+            "SELECT m.id, m.conversation_id, m.sender_id, m.recipient_id, m.body, m.created_at, "
+            "a.id AS attachment_id, a.original_filename, a.content_type, a.file_size "
+            "FROM employee_messages m LEFT JOIN employee_attachments a "
+            "ON a.message_id = m.id AND a.company_id = m.company_id "
+            "WHERE m.company_id = ? AND m.conversation_id = ? AND m.id < ? "
+            "ORDER BY m.id DESC LIMIT ?",
+            (company_id, conversation_id, before_id, limit),
+        )
+    rows = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return rows
+
+
+def create_employee_message(
+    company_id: int,
+    conversation_id: int,
+    sender_id: str,
+    body: str,
+) -> dict | None:
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT participant_a, participant_b FROM employee_conversations "
+        "WHERE id = ? AND company_id = ? AND (participant_a = ? OR participant_b = ?)",
+        (conversation_id, company_id, sender_id, sender_id),
+    )
+    conversation = cursor.fetchone()
+    if not conversation:
+        conn.close()
+        return None
+
+    recipient_id = (
+        conversation["participant_b"]
+        if conversation["participant_a"] == sender_id
+        else conversation["participant_a"]
+    )
+    created_at = datetime.now(timezone.utc).isoformat(timespec="milliseconds")
+    cursor.execute(
+        "INSERT INTO employee_messages "
+        "(company_id, conversation_id, sender_id, recipient_id, body, created_at) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (company_id, conversation_id, sender_id, recipient_id, body, created_at),
+    )
+    message_id = cursor.lastrowid
+    cursor.execute(
+        "UPDATE employee_conversations SET last_message_at = ? "
+        "WHERE id = ? AND company_id = ?",
+        (created_at, conversation_id, company_id),
+    )
+    cursor.execute(
+        "SELECT id, conversation_id, sender_id, recipient_id, body, created_at "
+        "FROM employee_messages WHERE id = ? AND company_id = ?",
+        (message_id, company_id),
+    )
+    row = cursor.fetchone()
+    conn.commit()
+    conn.close()
+    return dict(row) if row else None
+
+
+def create_employee_attachment_message(
+    company_id: int,
+    conversation_id: int,
+    sender_id: str,
+    body: str,
+    original_filename: str,
+    storage_filename: str,
+    content_type: str,
+    file_size: int,
+) -> dict | None:
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT participant_a, participant_b FROM employee_conversations "
+        "WHERE id = ? AND company_id = ? AND (participant_a = ? OR participant_b = ?)",
+        (conversation_id, company_id, sender_id, sender_id),
+    )
+    conversation = cursor.fetchone()
+    if not conversation:
+        conn.close()
+        return None
+
+    recipient_id = (
+        conversation["participant_b"]
+        if conversation["participant_a"] == sender_id
+        else conversation["participant_a"]
+    )
+    created_at = datetime.now(timezone.utc).isoformat(timespec="milliseconds")
+    cursor.execute(
+        "INSERT INTO employee_messages "
+        "(company_id, conversation_id, sender_id, recipient_id, body, created_at) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (company_id, conversation_id, sender_id, recipient_id, body, created_at),
+    )
+    message_id = cursor.lastrowid
+    cursor.execute(
+        "INSERT INTO employee_attachments "
+        "(company_id, conversation_id, message_id, original_filename, storage_filename, content_type, file_size) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (company_id, conversation_id, message_id, original_filename, storage_filename, content_type, file_size),
+    )
+    cursor.execute(
+        "UPDATE employee_conversations SET last_message_at = ? WHERE id = ? AND company_id = ?",
+        (created_at, conversation_id, company_id),
+    )
+    cursor.execute(
+        "SELECT m.id, m.conversation_id, m.sender_id, m.recipient_id, m.body, m.created_at, "
+        "a.id AS attachment_id, a.original_filename, a.content_type, a.file_size "
+        "FROM employee_messages m JOIN employee_attachments a ON a.message_id = m.id "
+        "WHERE m.id = ? AND m.company_id = ?",
+        (message_id, company_id),
+    )
+    row = cursor.fetchone()
+    conn.commit()
+    conn.close()
+    return dict(row) if row else None
+
+
+def get_employee_attachment(
+    company_id: int,
+    employee_id: str,
+    conversation_id: int,
+    message_id: int,
+) -> dict | None:
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT a.id, a.company_id, a.conversation_id, a.message_id, a.original_filename, "
+        "a.storage_filename, a.content_type, a.file_size "
+        "FROM employee_attachments a "
+        "JOIN employee_conversations c ON c.id = a.conversation_id AND c.company_id = a.company_id "
+        "WHERE a.company_id = ? AND a.conversation_id = ? AND a.message_id = ? "
+        "AND (c.participant_a = ? OR c.participant_b = ?)",
+        (company_id, conversation_id, message_id, employee_id, employee_id),
+    )
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def mark_employee_conversation_read(company_id: int, employee_id: str, conversation_id: int) -> int | None:
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT 1 FROM employee_conversations WHERE id = ? AND company_id = ? "
+        "AND (participant_a = ? OR participant_b = ?)",
+        (conversation_id, company_id, employee_id, employee_id),
+    )
+    if not cursor.fetchone():
+        conn.close()
+        return None
+
+    cursor.execute(
+        "SELECT COALESCE(MAX(id), 0) AS last_read_message_id FROM employee_messages "
+        "WHERE company_id = ? AND conversation_id = ? AND recipient_id = ?",
+        (company_id, conversation_id, employee_id),
+    )
+    last_read_message_id = cursor.fetchone()["last_read_message_id"]
+    read_at = datetime.now(timezone.utc).isoformat(timespec="milliseconds")
+    cursor.execute(
+        "INSERT INTO employee_message_reads "
+        "(company_id, conversation_id, employee_id, last_read_message_id, read_at) "
+        "VALUES (?, ?, ?, ?, ?) "
+        "ON CONFLICT(company_id, conversation_id, employee_id) DO UPDATE SET "
+        "last_read_message_id = MAX(last_read_message_id, excluded.last_read_message_id), "
+        "read_at = excluded.read_at",
+        (company_id, conversation_id, employee_id, last_read_message_id, read_at),
+    )
+    cursor.execute(
+        "SELECT COUNT(*) AS unread_count FROM employee_messages unread "
+        "LEFT JOIN employee_message_reads read_state "
+        "ON read_state.company_id = unread.company_id "
+        "AND read_state.conversation_id = unread.conversation_id "
+        "AND read_state.employee_id = ? "
+        "WHERE unread.company_id = ? AND unread.recipient_id = ? "
+        "AND unread.id > COALESCE(read_state.last_read_message_id, 0)",
+        (employee_id, company_id, employee_id),
+    )
+    unread_count = cursor.fetchone()["unread_count"]
+    conn.commit()
+    conn.close()
+    return unread_count
+
+
+def count_unread_employee_messages(company_id: int, employee_id: str) -> int:
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT COUNT(*) AS unread_count FROM employee_messages unread "
+        "LEFT JOIN employee_message_reads read_state "
+        "ON read_state.company_id = unread.company_id "
+        "AND read_state.conversation_id = unread.conversation_id "
+        "AND read_state.employee_id = ? "
+        "WHERE unread.company_id = ? AND unread.recipient_id = ? "
+        "AND unread.id > COALESCE(read_state.last_read_message_id, 0)",
+        (employee_id, company_id, employee_id),
+    )
+    unread_count = cursor.fetchone()["unread_count"]
+    conn.close()
+    return unread_count
 
 
 # ---------- Leave Requests ----------

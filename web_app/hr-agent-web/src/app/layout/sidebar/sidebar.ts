@@ -3,6 +3,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 import {
   LucideAngularModule,
   MessageCircle,
+  MessagesSquare,
   CalendarDays,
   History,
   UserRound,
@@ -33,6 +34,7 @@ export class Sidebar {
   protected readonly layout = inject(LayoutService);
   protected readonly TeamIcon = Users2;
   protected readonly ChatIcon = MessageCircle;
+  protected readonly EmployeeChatIcon = MessagesSquare;
   protected readonly LeaveIcon = CalendarDays;
   protected readonly HistoryIcon = History;
   protected readonly AccountIcon = UserRound;

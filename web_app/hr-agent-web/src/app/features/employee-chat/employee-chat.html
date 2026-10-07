@@ -1,0 +1,279 @@
+<div class="employee-chat-page" [class.mobile-conversation-open]="!!selectedConversation()">
+  <aside class="employee-chat-sidebar">
+    <header class="employee-chat-heading">
+      <p>{{ i18n.t('employee_chat_title') }}</p>
+    </header>
+
+    <section class="chat-section recent-section">
+      <div class="section-heading">
+        <h2>{{ i18n.t('employee_chat_recent') }}</h2>
+        @if (totalUnread() > 0) {
+          <span class="unread-total-badge" [attr.aria-label]="i18n.t('employee_chat_unread_total', { count: totalUnread() })">
+            {{ totalUnread() > 99 ? '99+' : totalUnread() }}
+          </span>
+        }
+      </div>
+
+      <div class="recent-list">
+        @for (conversation of conversations(); track conversation.id) {
+          <button
+            type="button"
+            class="person-row recent-row"
+            [class.person-row-active]="selectedConversation()?.id === conversation.id"
+            [class.person-row-unread]="conversation.unread_count > 0"
+            (click)="selectConversation(conversation)"
+          >
+            <span class="person-avatar" aria-hidden="true">
+              @if (conversation.employee.avatar_url; as avatarUrl) {
+                <img [src]="avatarUrl" alt="" />
+              } @else {
+                {{ employeeInitial(conversation.employee) }}
+              }
+            </span>
+            <span class="person-copy">
+              <span class="person-name">{{ conversation.employee.full_name }}</span>
+              <span class="person-preview">{{ conversation.last_message || i18n.t('employee_chat_empty') }}</span>
+            </span>
+            <time class="person-time">{{ formatMessageTime(conversation.last_activity_at) }}</time>
+            @if (conversation.unread_count > 0) {
+              <span class="unread-badge" [attr.aria-label]="i18n.t('employee_chat_unread_count', { count: conversation.unread_count })">
+                {{ conversation.unread_count > 99 ? '99+' : conversation.unread_count }}
+              </span>
+            }
+          </button>
+        } @empty {
+          @if (!isLoadingRecent()) {
+            <p class="list-empty">{{ i18n.t('employee_chat_no_conversations') }}</p>
+          }
+        }
+        @if (isLoadingRecent() && conversations().length === 0) {
+          <p class="list-empty">{{ i18n.t('employee_chat_loading') }}</p>
+        }
+      </div>
+      @if (recentHasMore()) {
+        <button type="button" class="load-more" [disabled]="isLoadingRecent()" (click)="loadMoreRecentChats()">
+          {{ isLoadingRecent() ? i18n.t('employee_chat_loading') : i18n.t('employee_chat_load_more') }}
+        </button>
+      }
+    </section>
+
+    <section class="chat-section employees-section">
+      <div class="section-heading">
+        <h2>{{ i18n.t('employee_chat_employees') }}</h2>
+      </div>
+      <label class="employee-search">
+        <lucide-icon [img]="SearchIcon" [size]="15" />
+        <input
+          [value]="employeeSearch()"
+          (input)="onEmployeeSearch($event)"
+          [placeholder]="i18n.t('employee_chat_search')"
+          [attr.aria-label]="i18n.t('employee_chat_search')"
+        />
+      </label>
+
+      <div class="employee-list">
+        @for (employee of employees(); track employee.employee_id) {
+          <button
+            type="button"
+            class="person-row employee-row"
+            [disabled]="!!startingEmployeeId()"
+            (click)="startConversation(employee)"
+          >
+            <span class="person-avatar" aria-hidden="true">
+              @if (employee.avatar_url; as avatarUrl) {
+                <img [src]="avatarUrl" alt="" />
+              } @else {
+                {{ employeeInitial(employee) }}
+              }
+            </span>
+            <span class="person-copy">
+              <span class="person-name">{{ employee.full_name }}</span>
+              <span class="person-id">{{ employee.employee_id }}</span>
+            </span>
+            @if (startingEmployeeId() === employee.employee_id) {
+              <span class="starting-indicator" aria-hidden="true"></span>
+            }
+          </button>
+        } @empty {
+          @if (!isLoadingEmployees()) {
+            <p class="list-empty">{{ i18n.t('employee_chat_no_employees') }}</p>
+          }
+        }
+        @if (isLoadingEmployees() && employees().length === 0) {
+          <p class="list-empty">{{ i18n.t('employee_chat_loading') }}</p>
+        }
+      </div>
+      @if (employeeHasMore()) {
+        <button
+          type="button"
+          class="load-more"
+          [disabled]="isLoadingEmployees()"
+          (click)="loadMoreEmployees()"
+        >
+          {{ isLoadingEmployees() ? i18n.t('employee_chat_loading') : i18n.t('employee_chat_load_more') }}
+        </button>
+      }
+    </section>
+  </aside>
+
+  <main class="conversation-panel">
+    @if (selectedConversation(); as conversation) {
+      <header class="conversation-header">
+        <button
+          type="button"
+          class="back-button"
+          [attr.aria-label]="i18n.t('employee_chat_title')"
+          (click)="backToConversations()"
+        >
+          <lucide-icon [img]="BackIcon()" [size]="18" />
+        </button>
+        <span class="person-avatar conversation-avatar" aria-hidden="true">
+          @if (conversation.employee.avatar_url; as avatarUrl) {
+            <img [src]="avatarUrl" alt="" />
+          } @else {
+            {{ employeeInitial(conversation.employee) }}
+          }
+        </span>
+        <div class="conversation-person">
+          <h1>{{ conversation.employee.full_name }}</h1>
+          <span>{{ conversation.employee.employee_id }}</span>
+        </div>
+      </header>
+
+      <div
+        #messageViewport
+        class="message-viewport"
+        (scroll)="onMessageScroll($event)"
+        [attr.aria-label]="i18n.t('employee_chat_title')"
+      >
+        @if (isLoadingOlder()) {
+          <div class="older-loading">{{ i18n.t('employee_chat_loading_older') }}</div>
+        }
+        @if (isLoadingMessages() && messages().length === 0) {
+          <div class="conversation-state">{{ i18n.t('employee_chat_loading') }}</div>
+        } @else if (messages().length === 0) {
+          <div class="conversation-state">{{ i18n.t('employee_chat_empty') }}</div>
+        }
+        @for (message of messages(); track message.id) {
+          <div class="message-row" [class.message-own]="message.sender_id === currentEmployeeId()">
+            <article class="message-bubble">
+              @if (message.body) {
+                <p>{{ message.body }}</p>
+              }
+              @if (message.attachment; as attachment) {
+                @if (attachment.is_image) {
+                  @if (imagePreviewUrl(message); as previewUrl) {
+                    <img
+                      class="message-image"
+                      [src]="previewUrl"
+                      [alt]="attachment.file_name"
+                      (load)="onPreviewImageLoaded()"
+                    />
+                  } @else {
+                    <div class="attachment-loading">{{ i18n.t('employee_chat_attachment_loading') }}</div>
+                  }
+                  <button
+                    type="button"
+                    class="attachment-download image-download"
+                    [attr.aria-label]="i18n.t('employee_chat_download') + ' ' + attachment.file_name"
+                    [title]="i18n.t('employee_chat_download')"
+                    (click)="downloadAttachment(message)"
+                  >
+                    <lucide-icon [img]="DownloadIcon" [size]="15" />
+                    <span>{{ i18n.t('employee_chat_download') }}</span>
+                  </button>
+                } @else {
+                  <div class="file-attachment">
+                    <lucide-icon [img]="attachmentIcon(attachment)" [size]="21" />
+                    <span class="file-attachment-copy">
+                      <strong>{{ attachment.file_name }}</strong>
+                      <small>{{ formatFileSize(attachment.file_size) }}</small>
+                    </span>
+                    <button
+                      type="button"
+                      class="attachment-download"
+                      [attr.aria-label]="i18n.t('employee_chat_download') + ' ' + attachment.file_name"
+                      [title]="i18n.t('employee_chat_download')"
+                      (click)="downloadAttachment(message)"
+                    >
+                      <lucide-icon [img]="DownloadIcon" [size]="16" />
+                    </button>
+                  </div>
+                }
+              }
+              <time [attr.datetime]="message.created_at">{{ formatMessageTime(message.created_at) }}</time>
+            </article>
+          </div>
+        }
+        @if (isOtherTyping()) {
+          <div class="typing-row" role="status" aria-live="polite">
+            <div class="typing-indicator">
+              <span class="typing-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span>{{ i18n.t('employee_chat_typing') }}</span>
+            </div>
+          </div>
+        }
+      </div>
+      @if (newMessageCount() > 0) {
+        <button
+          type="button"
+          class="new-messages-button"
+          animate.enter="new-message-enter"
+          animate.leave="new-message-leave"
+          (click)="scrollToNewMessages()"
+        >
+          <span>{{ newMessageCount() === 1 ? i18n.t('employee_chat_new_message') : i18n.t('employee_chat_new_messages', { count: newMessageCount() }) }}</span>
+          <lucide-icon [img]="NewMessagesArrowIcon" [size]="16" />
+        </button>
+      }
+
+      <form class="message-composer" (ngSubmit)="sendMessage()">
+        <input
+          #attachmentInput
+          class="attachment-input"
+          type="file"
+          [accept]="attachmentAccept"
+          (change)="onAttachmentSelected($event)"
+        />
+        @if (selectedFile(); as file) {
+          <div class="selected-attachment">
+            <lucide-icon [img]="file.type.startsWith('image/') ? ImageFileIcon : TextFileIcon" [size]="17" />
+            <span>{{ file.name }}</span>
+            <button type="button" [attr.aria-label]="i18n.t('employee_chat_remove_attachment')" (click)="removeSelectedFile()">
+              <lucide-icon [img]="RemoveIcon" [size]="15" />
+            </button>
+          </div>
+        }
+        <textarea
+          [(ngModel)]="messageText"
+          name="message"
+          rows="1"
+          maxlength="4000"
+          [placeholder]="i18n.t('employee_chat_placeholder')"
+          [attr.aria-label]="i18n.t('employee_chat_placeholder')"
+          (input)="onComposerInput($event)"
+          (keydown)="onComposerKeydown($event)"
+        ></textarea>
+        <button
+          type="button"
+          class="attachment-pick"
+          [attr.aria-label]="i18n.t('employee_chat_add_attachment')"
+          [title]="i18n.t('employee_chat_add_attachment')"
+          [disabled]="isSending()"
+          (click)="attachmentInput.click()"
+        >
+          <lucide-icon [img]="PaperclipIcon" [size]="18" />
+        </button>
+        <button type="submit" [disabled]="isSending() || (!messageText().trim() && !selectedFile())">
+          <span>{{ i18n.t('employee_chat_send') }}</span>
+          <lucide-icon [img]="SendArrowIcon()" [size]="16" />
+        </button>
+      </form>
+    } @else {
+      <div class="conversation-empty">
+        <span class="empty-chat-icon"><lucide-icon [img]="MessageIcon" [size]="23" /></span>
+        <p>{{ i18n.t('employee_chat_select') }}</p>
+      </div>
+    }
+  </main>
+</div>

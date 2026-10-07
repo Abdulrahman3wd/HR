@@ -29,6 +29,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/chat/chat').then((m) => m.Chat),
       },
       {
+        path: 'employee-chat',
+        loadComponent: () => import('./features/employee-chat/employee-chat').then((m) => m.EmployeeChat),
+      },
+      {
         path: 'leave',
         loadComponent: () => import('./features/leave/leave').then((m) => m.Leave),
       },

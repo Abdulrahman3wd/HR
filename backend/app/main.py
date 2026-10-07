@@ -34,11 +34,12 @@ from app.routers import (
     overtime_routes,
     public_recruitment_routes,
     interview_routes,
-    public_interview_routes
+    public_interview_routes,
+    employee_chat_routes,
 )
 from app.rate_limiter import limiter
-from app.config import PROFILE_PICTURES_DIR
-from app.database import ensure_avatar_filename_column
+from app.config import EMPLOYEE_CHAT_ATTACHMENTS_DIR, PROFILE_PICTURES_DIR
+from app.database import ensure_avatar_filename_column, ensure_employee_chat_tables
 
 app = FastAPI(title="HR Agent API")
 
@@ -68,10 +69,13 @@ app.mount(
 @app.on_event("startup")
 def prepare_profile_picture_storage():
     PROFILE_PICTURES_DIR.mkdir(parents=True, exist_ok=True)
+    EMPLOYEE_CHAT_ATTACHMENTS_DIR.mkdir(parents=True, exist_ok=True)
     ensure_avatar_filename_column()
+    ensure_employee_chat_tables()
 
 app.include_router(auth_routes.router)
 app.include_router(chat_routes.router)
+app.include_router(employee_chat_routes.router)
 app.include_router(admin_docs_routes.router)
 app.include_router(admin_users_routes.router)
 app.include_router(admin_chat_logs_routes.router)

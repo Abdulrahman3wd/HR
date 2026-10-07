@@ -5,3 +5,4 @@ __pycache__/
 data/chroma_db/
 data/hr_data.db
 data/profile_pictures/
+data/employee_chat_attachments/

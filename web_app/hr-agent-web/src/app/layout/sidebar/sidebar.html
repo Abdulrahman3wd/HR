@@ -36,6 +36,11 @@
       @if (!layout.isSidebarCollapsed() || layout.isMobileSidebarOpen()) { <span>{{ i18n.t('nav_chat') }}</span> }
     </a>
 
+    <a routerLink="/employee-chat" routerLinkActive="active" class="nav-item" (click)="onNavItemClick()">
+      <lucide-icon [img]="EmployeeChatIcon" [size]="19" />
+      @if (!layout.isSidebarCollapsed() || layout.isMobileSidebarOpen()) { <span>{{ i18n.t('nav_employee_chat') }}</span> }
+    </a>
+
     <a routerLink="/leave" routerLinkActive="active" class="nav-item" (click)="onNavItemClick()">
       <lucide-icon [img]="LeaveIcon" [size]="19" />
       @if (!layout.isSidebarCollapsed() || layout.isMobileSidebarOpen()) { <span>{{ i18n.t('nav_leave') }}</span> }

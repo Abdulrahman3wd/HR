@@ -4,7 +4,7 @@ models.py
 Pydantic models shared across routers (request/response shapes).
 """
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 UserRole = str  # 'admin' | 'hr' | 'employee' (kept as str for simplicity with SQLite)
 
@@ -67,6 +67,68 @@ class AskResponse(BaseModel):
     answer: str
     source_type: str
     sources: list[str] = []
+
+
+# ---------- Employee Chat ----------
+class EmployeeChatPerson(BaseModel):
+    employee_id: str
+    full_name: str
+    avatar_url: str | None = None
+
+
+class EmployeeChatEmployeePage(BaseModel):
+    employees: list[EmployeeChatPerson]
+    page: int
+    page_size: int
+    has_more: bool
+
+
+class EmployeeChatConversation(BaseModel):
+    id: int
+    employee: EmployeeChatPerson
+    last_message: str | None = None
+    last_activity_at: str
+    unread_count: int = 0
+
+
+class EmployeeChatConversationPage(BaseModel):
+    conversations: list[EmployeeChatConversation]
+    page: int
+    page_size: int
+    has_more: bool
+    total_unread: int = 0
+
+
+class EmployeeChatConversationRequest(BaseModel):
+    employee_id: str
+
+
+class EmployeeChatMessageCreate(BaseModel):
+    body: str = Field(min_length=1, max_length=4000)
+
+
+class EmployeeChatMessage(BaseModel):
+    id: int
+    conversation_id: int
+    sender_id: str
+    recipient_id: str
+    body: str
+    created_at: str
+    attachment: "EmployeeChatAttachment | None" = None
+
+
+class EmployeeChatAttachment(BaseModel):
+    id: int
+    file_name: str
+    content_type: str
+    file_size: int
+    is_image: bool
+
+
+class EmployeeChatMessagePage(BaseModel):
+    messages: list[EmployeeChatMessage]
+    has_more: bool
+    next_before_id: int | None = None
 
 
 # ---------- Chat History / Audit Log ----------
